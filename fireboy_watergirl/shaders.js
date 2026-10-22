@@ -27,14 +27,14 @@ const fsPiscina = `
   varying vec2 vTexCoord;
 
   uniform vec3 uColor;
-  uniform float time; // <-- Cambiado a 'time' para que coincida con el JS
+  uniform float time; // Segundos de juego (tiempoJuego)
 
   void main() {
     vec2 uv = vTexCoord;
 
     // Hacemos las ondas más notorias multiplicando el impacto en el color
-    float onda1 = sin(uv.x * 15.0 + time * 4.0) * 0.12;
-    float onda2 = cos(uv.y * 15.0 + time * 3.0) * 0.08;
+    float onda1 = sin(uv.x * 15.0 + time * 4.8) * 0.12;
+    float onda2 = cos(uv.y * 15.0 + time * 3.6) * 0.08;
 
     // Sumamos las ondas al color final
     vec3 colorFinal = uColor + vec3(onda1 + onda2);
