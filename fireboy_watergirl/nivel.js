@@ -15,6 +15,7 @@ let listaPlataformas = [];
 let listaBotones = [];
 let listaPuertas = [];
 let listaGemas = [];
+let listaCajas = [];
 let listaSolidos = [];     // Cuerpos que sirven de suelo (para detectar dónde se apoyan los personajes)
 
 function construirNivel(datos) {
@@ -31,6 +32,7 @@ function construirNivel(datos) {
   listaBotones = [];
   listaPuertas = [];
   listaGemas = [];
+  listaCajas = [];
 
   // --- Escenario estático ---
   for (let p of datos.paredes) agregarBloquePorEsquinas(...p);
@@ -72,6 +74,9 @@ function construirNivel(datos) {
     listaPuertas.push(new Puerta(...d.esquinas, d.tipo));
   }
 
+  // --- Cajas empujables ---
+  for (let esquinas of datos.cajas) listaCajas.push(new Caja(...esquinas));
+
   // --- Gemas ---
   for (let tipo of ['fuego', 'agua']) {
     for (let [x, y] of datos.gemas[tipo]) listaGemas.push(new Gema(x, y, tipo));
@@ -82,7 +87,7 @@ function construirNivel(datos) {
   watergirl = new Personaje(datos.aparicion.agua.x, datos.aparicion.agua.y, 'agua');
   personajes = [fireboy, watergirl];
 
-  listaSolidos = [...paredesYSuelos, ...listaPlataformas.map(plat => plat.cuerpo)];
+  listaSolidos = [...paredesYSuelos, ...listaPlataformas.map(plat => plat.cuerpo), ...listaCajas.map(c => c.cuerpo)];
 }
 
 // Vuelve a construir el nivel actual desde cero (personajes, plataformas, palancas...)
@@ -92,7 +97,7 @@ function reiniciarNivel() {
 
 // Lista de todas las entidades con lógica propia (las paredes no tienen)
 function todasLasEntidades() {
-  return [...personajes, ...piscinas, ...listaPalancas, ...listaPlataformas, ...listaBotones, ...listaPuertas, ...listaGemas];
+  return [...personajes, ...piscinas, ...listaPalancas, ...listaPlataformas, ...listaBotones, ...listaPuertas, ...listaGemas, ...listaCajas];
 }
 
 // Conteo de gemas; tipo opcional ('fuego' | 'agua') para contar solo las de un color

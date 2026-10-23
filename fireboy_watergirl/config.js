@@ -50,7 +50,7 @@ const TECLAS = {
 const CATEGORIA = {
   ESCENARIO: 0x0001,  // Paredes, suelos, rampas, plataformas móviles
   PERSONAJE: 0x0002,
-  CAJA:      0x0004,  // Reservada para las piedras empujables (Fase 5)
+  CAJA:      0x0004,  // Piedras empujables
   SENSOR:    0x0008   // Piscinas, botones, palancas
 };
 
@@ -59,5 +59,7 @@ const CATEGORIA = {
 const FILTRO = {
   ESCENARIO: { category: CATEGORIA.ESCENARIO, mask: CATEGORIA.PERSONAJE | CATEGORIA.CAJA },
   PERSONAJE: { category: CATEGORIA.PERSONAJE, mask: CATEGORIA.ESCENARIO | CATEGORIA.CAJA | CATEGORIA.SENSOR },
-  SENSOR:    { category: CATEGORIA.SENSOR,    mask: CATEGORIA.PERSONAJE | CATEGORIA.CAJA }
+  SENSOR:    { category: CATEGORIA.SENSOR,    mask: CATEGORIA.PERSONAJE | CATEGORIA.CAJA },
+  CAJA:      { category: CATEGORIA.CAJA,
+               mask: CATEGORIA.ESCENARIO | CATEGORIA.PERSONAJE | CATEGORIA.SENSOR | CATEGORIA.CAJA }
 };
