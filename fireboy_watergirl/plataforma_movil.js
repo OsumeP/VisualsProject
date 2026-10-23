@@ -51,6 +51,12 @@ class PlataformaMovil {
 
     // Arrastramos a quien esté parado encima para que suba y baje con ella sin rebotar
     let desplazamiento = siguienteY - actualY;
+
+    // Sonido al arrancar (no en cada paso del recorrido)
+    let moviendose = desplazamiento !== 0;
+    if (moviendose && !this.moviendose) reproducirSonido("plataforma");
+    this.moviendose = moviendose;
+
     if (desplazamiento !== 0) {
       for (let p of personajes) {
         if (p.soporte === this.cuerpo) Body.translate(p.cuerpo, { x: 0, y: desplazamiento });

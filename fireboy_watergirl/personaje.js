@@ -91,6 +91,7 @@ class Personaje {
       this.enSuelo = false;
       this.soporte = null;
       this.saltoEstePaso = true;
+      reproducirSonido("salto_" + this.tipoElemento);
     }
 
     // Quieto en el suelo: anulamos la gravedad para que no resbale en las rampas

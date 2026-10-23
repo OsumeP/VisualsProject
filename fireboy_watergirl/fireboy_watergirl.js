@@ -2,7 +2,7 @@
 const { Engine, World, Composite, Bodies, Body, Events } = Matter;
 let engine, world;
 
-let estadoPantalla = "inicio"; // "inicio", "juego", "muerte", "gameover" o "victoria"
+let estadoPantalla = "inicio"; // "inicio", "juego", "pausa", "muerte", "gameover" o "victoria"
 let estadoPendiente = null;    // Cambio de pantalla pedido durante un paso de física
 
 let tiempoJuego = 0;           // Segundos de juego simulados (anima los shaders)
@@ -38,6 +38,13 @@ function setup() {
   registrarEventosColision(engine);
 
   construirNivel(NIVEL_1);
+
+  iniciarAudio();
+
+  // Si la ventana pierde el foco en plena partida, se pausa sola
+  window.addEventListener("blur", () => {
+    if (estadoPantalla === "juego") pausarJuego();
+  });
 }
 
 
@@ -58,7 +65,13 @@ function draw() {
     tiempoMuerteMs += deltaTime;
     actualizarParticulas(min(deltaTime, CONFIG.MAX_DELTA_MS));
     dibujarEscenaJuego();
-    if (tiempoMuerteMs >= CONFIG.ANIMACION_MUERTE_MS) estadoPantalla = "gameover";
+    if (tiempoMuerteMs >= CONFIG.ANIMACION_MUERTE_MS) {
+      estadoPantalla = "gameover";
+      reproducirMusica("gameover", false);
+    }
+  } else if (estadoPantalla === "pausa") {
+    dibujarEscenaJuego(); // Todo congelado: ni física, ni reloj, ni partículas
+    pantalla_pausa();
   } else if (estadoPantalla === "gameover") {
     dibujarEscenaJuego(); // Última imagen de la partida, congelada de fondo
     pantalla_reinicio();
@@ -124,6 +137,8 @@ function personajeMuere(personaje) {
   if (personaje.muerto) return;
   personaje.muerto = true;
   emitirHumo(personaje.cuerpo.position.x, personaje.cuerpo.bounds.max.y, personaje.colorBrillo);
+  detenerMusica();
+  reproducirSonido("muerte");
   tiempoMuerteMs = 0;
   estadoPendiente = "muerte";
 }
@@ -146,6 +161,7 @@ function comprobarVictoria(dt) {
     };
     tiempoVictoriaMs = 0;
     estadoPendiente = "victoria";
+    reproducirMusica("victoria", false);
   }
 }
 
@@ -167,6 +183,29 @@ function iniciarPartida() {
   acumuladorFisica = 0;
   estadoPendiente = null;
   estadoPantalla = "juego";
+  reanudarAudio();
+  reproducirMusica("musica");
+}
+
+function pausarJuego() {
+  estadoPantalla = "pausa";
+  pausarAudio();
+}
+
+function continuarJuego() {
+  estadoPantalla = "juego";
+  acumuladorFisica = 0; // Que el tiempo en pausa no se simule de golpe
+  reanudarAudio();
+}
+
+function juegoEnPausa() {
+  return estadoPantalla === "pausa";
+}
+
+function irAlMenu() {
+  detenerMusica();
+  reanudarAudio();
+  estadoPantalla = "inicio";
 }
 
 
@@ -175,18 +214,29 @@ function iniciarPartida() {
   // ==========================================
 
 function mousePressed() {
+  desbloquearAudio();
+
   // Ajustamos el cursor al centro debido al canvas WEBGL
   let mX = mouseX - width / 2;
   let mY = mouseY - height / 2;
+
+  // El altavoz del HUD silencia en cualquier pantalla del juego
+  if (estadoPantalla !== "inicio" && clicEnAltavoz(mouseX, mouseY)) {
+    alternarSilencio();
+    return;
+  }
 
   if (estadoPantalla === "inicio") {
     // Botón Play circular (centro en 0, 100)
     if (dist(mX, mY, 0, 100) < 45) {
       iniciarPartida();
     }
+  } else if (estadoPantalla === "pausa") {
+    let boton = botonPausaBajo(mX, mY);
+    if (boton) boton.accion();
   } else if (estadoPantalla === "gameover" || pantallaVictoriaVisible()) {
     // Click en cualquier lado: volver al menú principal
-    estadoPantalla = "inicio";
+    irAlMenu();
   }
 }
 
@@ -195,13 +245,24 @@ function pantallaVictoriaVisible() {
 }
 
 function keyPressed() {
+  desbloquearAudio();
+
   if (keyCode === CONFIG.TECLA_DEPURACION) {
     alternarDepuracion();
     return false; // Evita la acción por defecto del navegador para F2
   }
+  if (keyCode === CONFIG.TECLA_SILENCIO) {
+    alternarSilencio();
+    return;
+  }
 
+  let teclaPausa = (keyCode === CONFIG.TECLA_PAUSA || keyCode === ESCAPE);
   if (estadoPantalla === "juego") {
-    for (let p of personajes) p.revisarSalto(keyCode);
+    if (teclaPausa) pausarJuego();
+    else for (let p of personajes) p.revisarSalto(keyCode);
+  } else if (estadoPantalla === "pausa") {
+    if (teclaPausa) continuarJuego();
+    else if (key === 'r' || key === 'R') iniciarPartida();
   } else if (estadoPantalla === "gameover" || pantallaVictoriaVisible()) {
     if (key === 'r' || key === 'R') {
       iniciarPartida();
@@ -238,7 +299,7 @@ function pantalla_inicio() {
   textSize(16);
   fill(255);
   text("¡Ayuda a estos dos heroes en su aventura! Evita los peligros.", 0, 245);
-  text("Controles: Fireboy [Flechas del teclado]  |  Watergirl [A, W, D]", 0, 285);
+  text("Controles: Fireboy [Flechas]  |  Watergirl [A, W, D]  |  P: pausa  |  M: sonido", 0, 285);
   textSize(18);
   fill(255, 200, 0);
   text("HAZ CLICK EN EL BOTON DE PLAY PARA EMPEZAR", 0, 325);
@@ -384,5 +445,57 @@ function pantalla_victoria() {
   fill(200);
   textSize(16);
   text("O haz click en cualquier lado para ir al menu", 0, 180);
+  pop();
+}
+
+  // ==========================================
+  //  PANTALLA PAUSA
+  // ==========================================
+
+const BOTONES_PAUSA = [
+  { texto: "CONTINUAR",      y: -20, accion: () => continuarJuego() },
+  { texto: "REINICIAR",      y: 40,  accion: () => iniciarPartida() },
+  { texto: "MENU PRINCIPAL", y: 100, accion: () => irAlMenu() }
+];
+const TAMANO_BOTON_PAUSA = { ancho: 320, alto: 46 };
+
+// Botón de la pausa bajo el punto (x, y) en coordenadas centradas, o null
+function botonPausaBajo(x, y) {
+  let t = TAMANO_BOTON_PAUSA;
+  return BOTONES_PAUSA.find(b => abs(x) <= t.ancho / 2 && abs(y - b.y) <= t.alto / 2) || null;
+}
+
+function pantalla_pausa() {
+  dibujarEncimaDeTodo();
+  push();
+  noStroke();
+  fill(0, 0, 0, 150);
+  rectMode(CENTER);
+  rect(0, 0, width, height);
+
+  fill(255, 200, 0);
+  rect(0, 10, 424, 324, 22);   // Borde dorado (relleno: en WEBGL evitamos stroke)
+  fill(139, 69, 19, 245);
+  rect(0, 10, 416, 316, 20);
+
+  textAlign(CENTER, CENTER);
+  textFont(fuente_juego);
+  fill(255, 215, 0);
+  textSize(40);
+  text("PAUSA", 0, -95);
+
+  let encima = botonPausaBajo(mouseX - width / 2, mouseY - height / 2);
+  let t = TAMANO_BOTON_PAUSA;
+  for (let b of BOTONES_PAUSA) {
+    fill(b === encima ? color(255, 200, 40) : color(90, 45, 10));
+    rect(0, b.y, t.ancho, t.alto, 10);
+    fill(b === encima ? color(60, 30, 0) : color(255));
+    textSize(20);
+    text(b.texto, 0, b.y);
+  }
+
+  fill(220);
+  textSize(14);
+  text("P o ESC: continuar   |   R: reiniciar   |   M: sonido", 0, 150);
   pop();
 }
