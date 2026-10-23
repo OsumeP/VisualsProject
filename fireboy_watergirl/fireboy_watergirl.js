@@ -2,7 +2,7 @@
 const { Engine, World, Composite, Bodies, Body, Events } = Matter;
 let engine, world;
 
-let estadoPantalla = "inicio"; // "inicio", "juego", "gameover" o "victoria"
+let estadoPantalla = "inicio"; // "inicio", "juego", "muerte", "gameover" o "victoria"
 let estadoPendiente = null;    // Cambio de pantalla pedido durante un paso de física
 
 let tiempoJuego = 0;           // Segundos de juego simulados (anima los shaders)
@@ -11,6 +11,7 @@ let acumuladorFisica = 0;      // Milisegundos reales aún no simulados
 
 let tiempoEnPuertasMs = 0;     // Cuánto llevan ambos personajes en su puerta a la vez
 let tiempoVictoriaMs = 0;      // Tiempo desde que se ganó (anima la entrada por la puerta)
+let tiempoMuerteMs = 0;        // Tiempo desde que murió un personaje (anima el humo)
 let resultado = null;          // Datos de la partida ganada: { tiempoMs, gemas, calificacion }
 
 let imgInicio, imgBosque, fuente_juego;
@@ -19,6 +20,7 @@ function preload() {
   imgInicio = loadImage("Resources/images/startgame.png");
   imgBosque = loadImage("Resources/images/backgame.png");
   fuente_juego = loadFont("Resources/fonts/space.ttf");
+  cargarSprites();
 }
 
 function setup() {
@@ -49,12 +51,20 @@ function draw() {
     pantalla_inicio();
   } else if (estadoPantalla === "juego") {
     actualizarJuego();
+    actualizarParticulas(min(deltaTime, CONFIG.MAX_DELTA_MS));
     dibujarEscenaJuego();
+  } else if (estadoPantalla === "muerte") {
+    // La física se detiene; el humo sigue y después aparece el game over
+    tiempoMuerteMs += deltaTime;
+    actualizarParticulas(min(deltaTime, CONFIG.MAX_DELTA_MS));
+    dibujarEscenaJuego();
+    if (tiempoMuerteMs >= CONFIG.ANIMACION_MUERTE_MS) estadoPantalla = "gameover";
   } else if (estadoPantalla === "gameover") {
     dibujarEscenaJuego(); // Última imagen de la partida, congelada de fondo
     pantalla_reinicio();
   } else if (estadoPantalla === "victoria") {
     tiempoVictoriaMs += deltaTime;
+    actualizarParticulas(min(deltaTime, CONFIG.MAX_DELTA_MS));
     dibujarEscenaJuego();
     if (tiempoVictoriaMs >= CONFIG.ENTRADA_VICTORIA_MS) pantalla_victoria();
   }
@@ -108,9 +118,14 @@ function pasoDeJuego(dt) {
   }
 }
 
-// Llamado por las entidades (ej: una piscina) cuando un personaje muere
+// Llamado por las entidades (ej: una piscina) cuando un personaje muere:
+// se convierte en humo y, al terminar la animación, aparece el game over
 function personajeMuere(personaje) {
-  estadoPendiente = "gameover";
+  if (personaje.muerto) return;
+  personaje.muerto = true;
+  emitirHumo(personaje.cuerpo.position.x, personaje.cuerpo.bounds.max.y, personaje.colorBrillo);
+  tiempoMuerteMs = 0;
+  estadoPendiente = "muerte";
 }
 
 // Se gana cuando cada personaje lleva un momento frente a su puerta, los dos a la vez
@@ -148,6 +163,7 @@ function iniciarPartida() {
   tiempoPartidaMs = 0;
   tiempoEnPuertasMs = 0;
   resultado = null;
+  limpiarParticulas();
   acumuladorFisica = 0;
   estadoPendiente = null;
   estadoPantalla = "juego";
@@ -269,19 +285,25 @@ function dibujarJuego() {
   for (let pisc of piscinas) pisc.dibujar();
   resetShader();
 
-  // Al ganar, los personajes se desvanecen como si entraran por la puerta
-  let opacidad = 255;
-  if (estadoPantalla === "victoria") {
-    opacidad = 255 * (1 - constrain(tiempoVictoriaMs / CONFIG.ENTRADA_VICTORIA_MS, 0, 1));
+  // Al ganar, los personajes entran por su puerta
+  for (let p of personajes) {
+    if (estadoPantalla === "victoria") p.dibujarGanando(tiempoVictoriaMs);
+    else p.dibujar();
   }
-  for (let p of personajes) p.dibujar(opacidad);
+  dibujarParticulas();
 }
 
   // ==========================================
   //  PANTALLA GAMEOVER
   // ==========================================
 
+// En WEBGL, borrar la profundidad hace que lo siguiente se dibuje por encima de todo
+function dibujarEncimaDeTodo() {
+  drawingContext.clear(drawingContext.DEPTH_BUFFER_BIT);
+}
+
 function pantalla_reinicio() {
+  dibujarEncimaDeTodo();
   push();
   // Fondo oscuro transparente sobre la última imagen del juego
   fill(0, 0, 0, 180);
@@ -316,6 +338,7 @@ function pantalla_reinicio() {
   // ==========================================
 
 function pantalla_victoria() {
+  dibujarEncimaDeTodo();
   push();
   fill(0, 0, 0, 160);
   rectMode(CENTER);

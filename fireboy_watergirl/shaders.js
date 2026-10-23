@@ -30,14 +30,24 @@ const fsPiscina = `
   uniform float time; // Segundos de juego (tiempoJuego)
 
   void main() {
-    vec2 uv = vTexCoord;
+    vec2 uv = vTexCoord; // x: 0..1 a lo ancho; y: 0 en el borde superior, 1 en el fondo
 
-    // Hacemos las ondas más notorias multiplicando el impacto en el color
-    float onda1 = sin(uv.x * 15.0 + time * 4.8) * 0.12;
-    float onda2 = cos(uv.y * 15.0 + time * 3.6) * 0.08;
+    // Superficie ondulada: lo que queda por encima de la ola no se pinta
+    float ola = 0.2 + 0.1 * sin(uv.x * 28.0 + time * 3.0)
+                    + 0.05 * sin(uv.x * 61.0 - time * 4.3);
+    if (uv.y < ola) discard;
 
-    // Sumamos las ondas al color final
-    vec3 colorFinal = uColor + vec3(onda1 + onda2);
+    // Más claro arriba y más oscuro en el fondo
+    float profundidad = (uv.y - ola) / (1.0 - ola);
+    vec3 colorFinal = uColor * (1.15 - 0.45 * profundidad);
+
+    // Brillo en la cresta de la ola
+    float cresta = 1.0 - smoothstep(0.0, 0.12, uv.y - ola);
+    colorFinal += vec3(0.35) * cresta;
+
+    // Ondulación interna del líquido
+    colorFinal += vec3(0.06) * sin(uv.x * 15.0 + time * 4.8)
+                + vec3(0.04) * cos(uv.y * 15.0 + time * 3.6);
 
     gl_FragColor = vec4(colorFinal, 1.0);
   }

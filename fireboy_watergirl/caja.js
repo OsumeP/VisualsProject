@@ -56,21 +56,25 @@ class Caja {
     translate(this.cuerpo.position.x, this.cuerpo.position.y);
     rectMode(CENTER);
 
-    // Bloque de piedra con borde oscuro
-    stroke(25, 20, 10);
-    strokeWeight(3);
+    // Bloque de piedra con borde oscuro. Todo con rellenos: en WEBGL las líneas
+    // (stroke) se dibujan por delante de lo que venga después, incluso de los menús.
+    noStroke();
+    fill(25, 20, 10);
+    rect(0, 0, this.lado + 3, this.lado + 3, 4);
     fill(205, 205, 200);
-    rect(0, 0, this.lado, this.lado, 3);
+    rect(0, 0, this.lado - 3, this.lado - 3, 2);
 
-    // Vetas de la piedra
-    stroke(160, 160, 155);
-    strokeWeight(1);
-    line(-m + 6, -m / 3, m - 10, -m / 3 + 4);
-    line(-m + 10, m / 4, m - 6, m / 4 - 3);
-    line(-m / 3, -m + 6, -m / 3 + 5, -m / 3);
+    // Vetas de la piedra (rectángulos finos inclinados)
+    fill(160, 160, 155);
+    for (let [x, y, largo, angulo] of [[-2, -m / 3, m * 1.4, 0.08], [2, m / 4, m * 1.4, -0.07], [-m / 3, -m / 2, m * 0.6, 1.4]]) {
+      push();
+      translate(x, y);
+      rotate(angulo);
+      rect(0, 0, largo, 1);
+      pop();
+    }
 
     // Esquinas doradas
-    noStroke();
     fill(240, 190, 30);
     let e = 10, b = m - 2;
     triangle(-b, -b, -b + e, -b, -b, -b + e);
