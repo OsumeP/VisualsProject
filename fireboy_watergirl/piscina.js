@@ -4,13 +4,14 @@
 
 class Piscina {
   // tipo: 'lava' | 'agua' | 'acido'
-  constructor(xIni, yIni, xFin, yFin, tipo) {
+  // talud: ancho de los lados inclinados del hueco (se dibuja como trapecio)
+  constructor(xIni, yIni, xFin, yFin, tipo, talud = 0) {
     this.tipo = tipo;
-    this.ancho = xFin - xIni;
-    this.alto = yFin - yIni;
-
-    this.centroX = xIni + (this.ancho / 2);
-    this.centroY = yIni + (this.alto / 2);
+    this.xIni = xIni;
+    this.yIni = yIni;
+    this.xFin = xFin;
+    this.yFin = yFin;
+    this.talud = talud;
 
     if (this.tipo === 'lava') {
       this.colorShader = [1.0, 0.2, 0.0];
@@ -22,7 +23,10 @@ class Piscina {
       this.colorShader = [0.5, 0.0, 0.8];
     }
 
-    this.cuerpo = Bodies.rectangle(this.centroX, this.centroY, this.ancho, this.alto, {
+    // El sensor empieza unos píxeles bajo el borde: pararse en la orilla no mata,
+    // hay que hundirse en el líquido.
+    let ySensor = yIni + Piscina.MARGEN_SUPERFICIE;
+    this.cuerpo = Bodies.rectangle((xIni + xFin) / 2, (ySensor + yFin) / 2, xFin - xIni, yFin - ySensor, {
       label: 'piscina',
       isStatic: true,
       isSensor: true,
@@ -41,16 +45,21 @@ class Piscina {
 
   dibujar() {
     push();
-    translate(this.centroX, this.centroY);
-
     shader(shaderLiquido);
 
     // Enviamos los datos al shader
     shaderLiquido.setUniform('uColor', this.colorShader);
     shaderLiquido.setUniform('time', tiempoJuego); // Segundos de juego
 
-    rectMode(CENTER);
-    rect(0, 0, this.ancho, this.alto);
+    // Trapecio con coordenadas de textura (u, v) en 0..1 para las ondas del shader
+    beginShape();
+    vertex(this.xIni, this.yIni, 0, 0, 0);
+    vertex(this.xFin, this.yIni, 0, 1, 0);
+    vertex(this.xFin - this.talud, this.yFin, 0, 1, 1);
+    vertex(this.xIni + this.talud, this.yFin, 0, 0, 1);
+    endShape(CLOSE);
     pop();
   }
 }
+
+Piscina.MARGEN_SUPERFICIE = 3;

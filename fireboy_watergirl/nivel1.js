@@ -20,10 +20,10 @@ const NIVEL_1 = {
     [980, 30, 1010, 760],   // R3: Pared derecha
 
     [0, 725, 472, 760],     // R4: Suelo inferior izquierdo
-    [472, 744, 597, 760],   // R5: Fondo piscina de lava
+    [472, 736, 597, 760],   // R5: Fondo piscina de lava
     [597, 725, 680, 760],   // R6: Isla separadora inferior
-    [680, 744, 805, 760],   // R7: Fondo piscina de agua
-    [800, 724, 980, 760],   // R8: Suelo inferior derecho
+    [680, 736, 805, 760],   // R7: Fondo piscina de agua
+    [800, 725, 980, 760],   // R8: Suelo inferior derecho
     [905, 680, 980, 730],   // R9: Escalón inferior derecho
     [932, 647, 980, 685],   // R9: Escalón inferior derecho arriba
     [30, 621, 340, 651],    // R10: Plataforma segundo piso watergirl
@@ -79,11 +79,14 @@ const NIVEL_1 = {
     [700, 158, 700, 130, 670, 158]
   ],
 
-  // Piscinas (sensores). tipo: 'lava' | 'agua' | 'acido'
+  // Piscinas. tipo: 'lava' | 'agua' | 'acido'
+  // esquinas: [xIni, yBorde, xFin, yFondo] del hueco (el fondo es una pared de la lista de arriba).
+  // talud: ancho de los lados inclinados; construirNivel() crea esas rampas para poder
+  // entrar y salir caminando, como en el original.
   piscinas: [
-    { esquinas: [472, 725, 597, 744], tipo: 'lava' },
-    { esquinas: [675, 725, 800, 744], tipo: 'agua' },
-    { esquinas: [630, 570, 755, 584], tipo: 'acido' }
+    { esquinas: [472, 725, 597, 736], tipo: 'lava',  talud: 11 },
+    { esquinas: [680, 725, 800, 736], tipo: 'agua',  talud: 11 },
+    { esquinas: [630, 570, 758, 584], tipo: 'acido', talud: 15 }
   ],
 
   // Plataformas móviles. recorrido = cuántos píxeles bajan al activarse

@@ -32,7 +32,7 @@ class Boton {
   }
 
   alColisionActiva(otra) {
-    if (otra instanceof Personaje) {
+    if (otra && otra.puedeActivarMecanismos) {
       this.estaPisado = true;
     }
   }
