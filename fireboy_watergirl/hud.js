@@ -1,5 +1,5 @@
   // ==========================================
-  //  HUD (reloj de la partida)
+  //  HUD (reloj y contador de gemas)
   // ==========================================
 // Se dibuja dentro del translate del juego (coordenadas del nivel).
 
@@ -16,6 +16,27 @@ function formatearTiempo(ms) {
 
 function dibujarHUD() {
   dibujarReloj(formatearTiempo(tiempoPartidaMs));
+  dibujarContadorGemas('fuego', 48);
+  dibujarContadorGemas('agua', 140);
+}
+
+// Icono de gema + "recogidas/total", sobre el techo de piedra (esquina superior izquierda)
+function dibujarContadorGemas(tipo, x) {
+  let { recogidas, total } = contarGemas(tipo);
+  let colorGema = (tipo === 'fuego') ? [255, 60, 40] : [60, 190, 255];
+
+  push();
+  dibujarFormaGema(x, 14, 0.8, colorGema);
+
+  textFont(fuente_juego);
+  textSize(16);
+  textAlign(LEFT, CENTER);
+  let texto = recogidas + "/" + total;
+  fill(20, 15, 5);
+  for (let [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) text(texto, x + 14 + dx, 13 + dy);
+  fill(255);
+  text(texto, x + 14, 13);
+  pop();
 }
 
 function dibujarReloj(texto) {
