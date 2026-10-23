@@ -6,6 +6,9 @@
 // Las conexiones entre elementos se hacen por id (ej: un botón indica qué plataforma mueve).
 
 const NIVEL_1 = {
+  id: 'nivel1',                              // Clave de los récords: no cambiarla
+  nombre: 'Forest Temple',
+  fondo: 'Resources/images/backgame.png',    // Arte del nivel (las coordenadas de abajo son sus píxeles)
 
   // Con este tiempo o menos (y todas las gemas) se obtiene la calificación A
   tiempoObjetivoS: 60,

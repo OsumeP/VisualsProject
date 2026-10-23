@@ -5,6 +5,21 @@
 // en cada reinicio, así nada queda con el estado de la partida anterior.
 
 let nivelActual = null;  // Datos del nivel cargado (ej: NIVEL_1)
+let indiceNivel = 0;     // Posición de nivelActual en listaNiveles()
+let imagenesFondo = {};  // Fondo de cada nivel, por id (se cargan en preload)
+let imgFondo;            // Fondo del nivel actual
+
+// Todos los niveles en orden. Para agregar uno: crear nivelN.js con sus datos
+// (ver NIVEL_1), su imagen de fondo, y añadirlo aquí. Es una función (y no una
+// constante) para no depender del orden en que se cargan los archivos.
+function listaNiveles() {
+  return [NIVEL_1];
+}
+
+// Se llama desde preload()
+function cargarFondosNiveles() {
+  for (let n of listaNiveles()) imagenesFondo[n.id] = loadImage(n.fondo);
+}
 
 let fireboy, watergirl;
 let personajes = [];
@@ -20,6 +35,7 @@ let listaSolidos = [];     // Cuerpos que sirven de suelo (para detectar dónde 
 
 function construirNivel(datos) {
   nivelActual = datos;
+  imgFondo = imagenesFondo[datos.id];
 
   // Vaciar por completo el mundo físico y las colisiones pendientes
   Composite.clear(world, false);
@@ -88,11 +104,6 @@ function construirNivel(datos) {
   personajes = [fireboy, watergirl];
 
   listaSolidos = [...paredesYSuelos, ...listaPlataformas.map(plat => plat.cuerpo), ...listaCajas.map(c => c.cuerpo)];
-}
-
-// Vuelve a construir el nivel actual desde cero (personajes, plataformas, palancas...)
-function reiniciarNivel() {
-  construirNivel(nivelActual);
 }
 
 // Lista de todas las entidades con lógica propia (las paredes no tienen)

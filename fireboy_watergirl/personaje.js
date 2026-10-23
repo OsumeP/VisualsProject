@@ -9,11 +9,11 @@ class Personaje {
     this.colorBrillo = (tipoElemento === 'fuego') ? [255, 120, 30] : [80, 190, 255];
     this.puedeActivarMecanismos = true; // Pisa botones y mueve palancas
 
-    // Asignación de controles
+    // Asignación de controles: listas de códigos de tecla
     let teclas = TECLAS[tipoElemento];
-    this.teclaIzquierda = teclas.izquierda;
-    this.teclaDerecha = teclas.derecha;
-    this.teclaSalto = teclas.salto;
+    this.teclasIzquierda = teclas.izquierda;
+    this.teclasDerecha = teclas.derecha;
+    this.teclasSalto = teclas.salto;
 
     // Estado del movimiento
     this.enSuelo = false;
@@ -54,7 +54,7 @@ class Personaje {
 
   // Se llama desde keyPressed(): guarda el salto unos ms por si aún no toca el suelo
   revisarSalto(codigoTecla) {
-    if (codigoTecla === this.teclaSalto) {
+    if (this.teclasSalto.includes(codigoTecla)) {
       this.tiempoBufferSalto = FISICA_PERSONAJE.BUFFER_SALTO_MS;
     }
   }
@@ -68,8 +68,8 @@ class Personaje {
 
     // --- Movimiento horizontal con aceleración ---
     let direccion = 0;
-    if (keyIsDown(this.teclaIzquierda)) direccion -= 1;
-    if (keyIsDown(this.teclaDerecha))   direccion += 1;
+    if (this.teclasIzquierda.some(t => keyIsDown(t))) direccion -= 1;
+    if (this.teclasDerecha.some(t => keyIsDown(t)))   direccion += 1;
     this.direccion = direccion;
     if (direccion !== 0) this.mirando = direccion;
 
