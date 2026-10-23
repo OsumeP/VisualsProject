@@ -103,6 +103,12 @@ const NIVEL_1 = {
     { x: 275, y: 520, estado: 'derecha', plataforma: 'izquierda' }
   ],
 
+  // Cajas de piedra empujables, por esquinas [xIni, yIni, xFin, yFin] (deben ser cuadradas).
+  // La del original está en el pasillo estrecho del cuarto nivel, sobre el bloque central.
+  cajas: [
+    [509, 193, 551, 235]
+  ],
+
   // Gemas: [x, y] del centro. Rojas solo para Fireboy, azules solo para Watergirl.
   // Van unos 22 px sobre el suelo para recogerlas al pasar caminando.
   gemas: {

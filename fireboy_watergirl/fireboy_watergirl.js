@@ -85,6 +85,7 @@ function actualizarJuego() {
 
 function pasoDeJuego(dt) {
   for (let p of personajes) p.antesDeFisica(dt);
+  for (let caja of listaCajas) caja.antesDeFisica();
 
   Engine.update(engine, dt);
 
@@ -262,6 +263,7 @@ function dibujarJuego() {
   for (let plat of listaPlataformas) plat.dibujar();
   for (let puerta of listaPuertas) puerta.dibujar();
   for (let gema of listaGemas) gema.dibujar();
+  for (let caja of listaCajas) caja.dibujar();
 
   // Shaders de Piscinas y Personajes
   for (let pisc of piscinas) pisc.dibujar();
