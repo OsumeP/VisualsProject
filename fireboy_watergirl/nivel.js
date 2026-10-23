@@ -13,6 +13,7 @@ let piscinas = [];         // Lava, agua, ácido
 let listaPalancas = [];
 let listaPlataformas = [];
 let listaBotones = [];
+let listaSolidos = [];     // Cuerpos que sirven de suelo (para detectar dónde se apoyan los personajes)
 
 function construirNivel(datos) {
   nivelActual = datos;
@@ -31,9 +32,15 @@ function construirNivel(datos) {
   for (let p of datos.paredes) agregarBloquePorEsquinas(...p);
   for (let r of datos.rampas) agregarRampaPorPuntos(...r);
 
-  // --- Piscinas ---
+  // --- Piscinas (y los lados inclinados de su hueco) ---
   for (let p of datos.piscinas) {
-    piscinas.push(new Piscina(...p.esquinas, p.tipo));
+    let [xIni, yIni, xFin, yFin] = p.esquinas;
+    let talud = p.talud || 0;
+    if (talud > 0) {
+      agregarRampaPorPuntos(xIni, yIni, xIni + talud, yFin, xIni, yFin);
+      agregarRampaPorPuntos(xFin, yIni, xFin, yFin, xFin - talud, yFin);
+    }
+    piscinas.push(new Piscina(xIni, yIni, xFin, yFin, p.tipo, talud));
   }
 
   // --- Plataformas, y lo que las activa (enlazado por id) ---
@@ -60,6 +67,8 @@ function construirNivel(datos) {
   fireboy = new Personaje(datos.aparicion.fuego.x, datos.aparicion.fuego.y, 'fuego');
   watergirl = new Personaje(datos.aparicion.agua.x, datos.aparicion.agua.y, 'agua');
   personajes = [fireboy, watergirl];
+
+  listaSolidos = [...paredesYSuelos, ...listaPlataformas.map(plat => plat.cuerpo)];
 }
 
 // Vuelve a construir el nivel actual desde cero (personajes, plataformas, palancas...)
@@ -70,6 +79,10 @@ function reiniciarNivel() {
 // Lista de todas las entidades con lógica propia (las paredes no tienen)
 function todasLasEntidades() {
   return [...personajes, ...piscinas, ...listaPalancas, ...listaPlataformas, ...listaBotones];
+}
+
+function cuerposSolidos() {
+  return listaSolidos;
 }
 
 function buscarPorId(mapa, id, tipo) {

@@ -16,6 +16,26 @@ const CONFIG = {
   TECLA_DEPURACION: 113     // F2
 };
 
+// Movimiento de los personajes. Las velocidades están en píxeles por paso de física
+// (1 paso = 1/60 s); los tiempos, en milisegundos.
+const FISICA_PERSONAJE = {
+  ANCHO: 30,
+  ALTO: 30,
+  CHAFLAN: 4,             // Esquinas redondeadas: no se enganchan en uniones y rampas
+
+  VELOCIDAD_MAX: 4,
+  ACEL_SUELO: 0.8,        // Cuánto cambia la velocidad X por paso al caminar
+  FRENO_SUELO: 1.2,       // ... al soltar la tecla en el suelo
+  ACEL_AIRE: 0.5,         // ... en el aire (menos control)
+
+  FUERZA_SALTO: 8,        // Velocidad Y inicial del salto (unos 115 px de altura)
+  COYOTE_MS: 90,          // Aún se puede saltar este tiempo después de dejar el suelo
+  BUFFER_SALTO_MS: 110,   // Un salto pulsado justo antes de aterrizar se ejecuta al tocar suelo
+
+  DISTANCIA_SUELO: 2,     // Píxeles bajo los pies en los que se considera "apoyado"
+  DISTANCIA_AJUSTE: 8     // Al bajar rampas, se pega al suelo si está a esta distancia o menos
+};
+
 // Teclas de cada personaje según su elemento
 const TECLAS = {
   fuego: { izquierda: 37, derecha: 39, salto: 38 },  // Flechas

@@ -22,6 +22,7 @@ function setup() {
 
   // Compilar los shaders cargados en las variables de texto
   shaderLiquido = createShader(vsPiscina, fsPiscina);
+  textureMode(NORMAL); // Coordenadas de textura 0..1 en vertex() (las usa el shader de las piscinas)
 
   engine = Engine.create();
   world = engine.world;
@@ -74,9 +75,11 @@ function actualizarJuego() {
 }
 
 function pasoDeJuego(dt) {
-  for (let p of personajes) p.actualizarMovimiento();
+  for (let p of personajes) p.antesDeFisica(dt);
 
   Engine.update(engine, dt);
+
+  for (let p of personajes) p.despuesDeFisica();
 
   for (let pal of listaPalancas) pal.actualizar();
   for (let plat of listaPlataformas) plat.actualizar();

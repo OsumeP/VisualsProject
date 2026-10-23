@@ -33,7 +33,7 @@ class PlataformaMovil {
     this.activadores.push(activador);
   }
 
-  // Se llama en cada paso de física
+  // Se llama en cada paso de física, después de Engine.update
   actualizar() {
     let activada = this.activadores.some(a => a.estaActivo());
     let destinoY = activada ? this.posFinalY : this.posInicialY;
@@ -48,6 +48,14 @@ class PlataformaMovil {
     }
 
     Body.setPosition(this.cuerpo, { x: this.centroX, y: siguienteY });
+
+    // Arrastramos a quien esté parado encima para que suba y baje con ella sin rebotar
+    let desplazamiento = siguienteY - actualY;
+    if (desplazamiento !== 0) {
+      for (let p of personajes) {
+        if (p.soporte === this.cuerpo) Body.translate(p.cuerpo, { x: 0, y: desplazamiento });
+      }
+    }
   }
 
   dibujar() {

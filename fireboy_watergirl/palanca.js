@@ -27,11 +27,12 @@ class Palanca {
     return this.estado === 'izquierda';
   }
 
-  // El personaje la mueve hacia el lado al que camina al tocarla
-  alIniciarColision(otra) {
-    if (otra instanceof Personaje) {
-      if (keyIsDown(otra.teclaIzquierda)) this.estado = 'izquierda';
-      if (keyIsDown(otra.teclaDerecha)) this.estado = 'derecha';
+  // Quien la toca la empuja hacia el lado al que se mueve (sirve aunque ya estuviera encima)
+  alColisionActiva(otra) {
+    if (otra && otra.puedeActivarMecanismos) {
+      let velX = otra.cuerpo.velocity.x;
+      if (velX < -1) this.estado = 'izquierda';
+      if (velX > 1) this.estado = 'derecha';
     }
   }
 
