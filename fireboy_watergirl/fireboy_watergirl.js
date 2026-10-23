@@ -11,7 +11,7 @@ let acumuladorFisica = 0;      // Milisegundos reales aún no simulados
 
 let tiempoEnPuertasMs = 0;     // Cuánto llevan ambos personajes en su puerta a la vez
 let tiempoVictoriaMs = 0;      // Tiempo desde que se ganó (anima la entrada por la puerta)
-let resultado = null;          // Datos de la partida ganada: { tiempoMs, calificacion }
+let resultado = null;          // Datos de la partida ganada: { tiempoMs, gemas, calificacion }
 
 let imgInicio, imgBosque, fuente_juego;
 
@@ -93,6 +93,7 @@ function pasoDeJuego(dt) {
   for (let pal of listaPalancas) pal.actualizar();
   for (let plat of listaPlataformas) plat.actualizar();
   for (let puerta of listaPuertas) puerta.actualizar();
+  for (let gema of listaGemas) gema.actualizar(dt);
 
   tiempoJuego += dt / 1000;
   tiempoPartidaMs += dt;
@@ -120,9 +121,12 @@ function comprobarVictoria(dt) {
   }
 
   if (tiempoEnPuertasMs >= CONFIG.ESPERA_VICTORIA_MS && !estadoPendiente) {
+    let gemas = contarGemas();
     resultado = {
       tiempoMs: tiempoPartidaMs,
-      calificacion: calificarPartida(tiempoPartidaMs, nivelActual.tiempoObjetivoS * 1000)
+      gemas: gemas,
+      calificacion: calificarPartida(tiempoPartidaMs, nivelActual.tiempoObjetivoS * 1000,
+                                     gemas.recogidas, gemas.total)
     };
     tiempoVictoriaMs = 0;
     estadoPendiente = "victoria";
@@ -131,8 +135,7 @@ function comprobarVictoria(dt) {
 
 // Calificación al estilo del original: A si se cumple el tiempo objetivo y se
 // recogen todas las gemas, B si se cumple solo una de las dos, C si ninguna.
-// (Las gemas llegan en la Fase 4; mientras tanto ese criterio se da por cumplido.)
-function calificarPartida(tiempoMs, objetivoMs, gemasRecogidas = 0, totalGemas = 0) {
+function calificarPartida(tiempoMs, objetivoMs, gemasRecogidas, totalGemas) {
   let cumplidos = 0;
   if (tiempoMs <= objetivoMs) cumplidos++;
   if (gemasRecogidas >= totalGemas) cumplidos++;
@@ -258,6 +261,7 @@ function dibujarJuego() {
   for (let pal of listaPalancas) pal.dibujar();
   for (let plat of listaPlataformas) plat.dibujar();
   for (let puerta of listaPuertas) puerta.dibujar();
+  for (let gema of listaGemas) gema.dibujar();
 
   // Shaders de Piscinas y Personajes
   for (let pisc of piscinas) pisc.dibujar();
@@ -319,7 +323,7 @@ function pantalla_victoria() {
   fill(139, 69, 19, 240);
   stroke(255, 200, 0);
   strokeWeight(4);
-  rect(0, 0, 580, 380, 20);
+  rect(0, 0, 580, 420, 20);
 
   noStroke();
   textAlign(CENTER, CENTER);
@@ -327,29 +331,33 @@ function pantalla_victoria() {
 
   fill(255, 215, 0);
   textSize(38);
-  text("NIVEL COMPLETADO", 0, -130);
+  text("NIVEL COMPLETADO", 0, -150);
 
   fill(255);
   textSize(24);
-  text("TIEMPO: " + formatearTiempo(resultado.tiempoMs), 0, -60);
+  text("TIEMPO: " + formatearTiempo(resultado.tiempoMs), 0, -90);
   textSize(16);
   fill(220);
-  text("OBJETIVO: " + formatearTiempo(nivelActual.tiempoObjetivoS * 1000), 0, -30);
+  text("OBJETIVO: " + formatearTiempo(nivelActual.tiempoObjetivoS * 1000), 0, -62);
+
+  fill(255);
+  textSize(24);
+  text("GEMAS: " + resultado.gemas.recogidas + " / " + resultado.gemas.total, 0, -22);
 
   // Calificación grande, con color según la nota
   let colores = { A: [255, 215, 0], B: [200, 200, 210], C: [205, 127, 50] };
   textSize(20);
   fill(255);
-  text("CALIFICACION", 0, 15);
+  text("CALIFICACION", 0, 22);
   fill(...colores[resultado.calificacion]);
   textSize(72);
-  text(resultado.calificacion, 0, 70);
+  text(resultado.calificacion, 0, 77);
 
   fill(255);
   textSize(18);
-  text("PRESIONA R PARA JUGAR DE NUEVO", 0, 140);
+  text("PRESIONA R PARA JUGAR DE NUEVO", 0, 150);
   fill(200);
   textSize(16);
-  text("O haz click en cualquier lado para ir al menu", 0, 168);
+  text("O haz click en cualquier lado para ir al menu", 0, 180);
   pop();
 }

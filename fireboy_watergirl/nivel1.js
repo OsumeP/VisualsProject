@@ -103,6 +103,23 @@ const NIVEL_1 = {
     { x: 275, y: 520, estado: 'derecha', plataforma: 'izquierda' }
   ],
 
+  // Gemas: [x, y] del centro. Rojas solo para Fireboy, azules solo para Watergirl.
+  // Van unos 22 px sobre el suelo para recogerlas al pasar caminando.
+  gemas: {
+    fuego: [
+      [535, 703],   // Sobre la piscina de lava
+      [520, 548],   // Pasillo de la piscina de ácido (izquierda)
+      [700, 393],   // Tercer nivel
+      [420, 262]    // Cuarto nivel
+    ],
+    agua: [
+      [740, 703],   // Sobre la piscina de agua
+      [810, 548],   // Pasillo de la piscina de ácido (derecha)
+      [820, 393],   // Tercer nivel
+      [250, 262]    // Cuarto nivel
+    ]
+  },
+
   // Puertas de salida: esquinas de la hoja de cada puerta en el fondo
   puertas: [
     { esquinas: [818, 93, 862, 153], tipo: 'fuego' },

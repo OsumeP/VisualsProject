@@ -14,6 +14,7 @@ let listaPalancas = [];
 let listaPlataformas = [];
 let listaBotones = [];
 let listaPuertas = [];
+let listaGemas = [];
 let listaSolidos = [];     // Cuerpos que sirven de suelo (para detectar dónde se apoyan los personajes)
 
 function construirNivel(datos) {
@@ -29,6 +30,7 @@ function construirNivel(datos) {
   listaPlataformas = [];
   listaBotones = [];
   listaPuertas = [];
+  listaGemas = [];
 
   // --- Escenario estático ---
   for (let p of datos.paredes) agregarBloquePorEsquinas(...p);
@@ -70,6 +72,11 @@ function construirNivel(datos) {
     listaPuertas.push(new Puerta(...d.esquinas, d.tipo));
   }
 
+  // --- Gemas ---
+  for (let tipo of ['fuego', 'agua']) {
+    for (let [x, y] of datos.gemas[tipo]) listaGemas.push(new Gema(x, y, tipo));
+  }
+
   // --- Personajes ---
   fireboy = new Personaje(datos.aparicion.fuego.x, datos.aparicion.fuego.y, 'fuego');
   watergirl = new Personaje(datos.aparicion.agua.x, datos.aparicion.agua.y, 'agua');
@@ -85,7 +92,13 @@ function reiniciarNivel() {
 
 // Lista de todas las entidades con lógica propia (las paredes no tienen)
 function todasLasEntidades() {
-  return [...personajes, ...piscinas, ...listaPalancas, ...listaPlataformas, ...listaBotones, ...listaPuertas];
+  return [...personajes, ...piscinas, ...listaPalancas, ...listaPlataformas, ...listaBotones, ...listaPuertas, ...listaGemas];
+}
+
+// Conteo de gemas; tipo opcional ('fuego' | 'agua') para contar solo las de un color
+function contarGemas(tipo) {
+  let gemas = tipo ? listaGemas.filter(g => g.tipo === tipo) : listaGemas;
+  return { recogidas: gemas.filter(g => g.recogida).length, total: gemas.length };
 }
 
 function cuerposSolidos() {
