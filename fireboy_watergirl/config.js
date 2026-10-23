@@ -15,8 +15,9 @@ const CONFIG = {
 
   TECLA_DEPURACION: 113,    // F2
 
-  ESPERA_VICTORIA_MS: 500,  // Tiempo que ambos deben estar en su puerta para ganar
-  ENTRADA_VICTORIA_MS: 700  // Duración de la animación de entrar por la puerta
+  ESPERA_VICTORIA_MS: 500,   // Tiempo que ambos deben estar en su puerta para ganar
+  ENTRADA_VICTORIA_MS: 900,  // Duración de la animación de entrar por la puerta
+  ANIMACION_MUERTE_MS: 1300  // Humo antes de mostrar el game over
 };
 
 // Movimiento de los personajes. Las velocidades están en píxeles por paso de física

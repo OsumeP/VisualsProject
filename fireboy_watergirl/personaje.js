@@ -6,7 +6,7 @@ class Personaje {
   // tipoElemento: 'fuego' (Fireboy) o 'agua' (Watergirl). Define controles, color y reglas.
   constructor(x, y, tipoElemento) {
     this.tipoElemento = tipoElemento;
-    this.color = (tipoElemento === 'fuego') ? color(255, 50, 50) : color(50, 150, 255);
+    this.colorBrillo = (tipoElemento === 'fuego') ? [255, 120, 30] : [80, 190, 255];
     this.puedeActivarMecanismos = true; // Pisa botones y mueve palancas
 
     // Asignación de controles
@@ -21,6 +21,13 @@ class Personaje {
     this.tiempoCoyote = 0;        // ms que aún puede saltar tras dejar el suelo
     this.tiempoBufferSalto = 0;   // ms que sigue "guardado" un salto pulsado
     this.saltoEstePaso = false;
+    this.direccion = 0;           // Entrada horizontal de este paso: -1, 0 o 1
+    this.muerto = false;
+
+    // Estado de la animación
+    this.mirando = 1;             // 1 = derecha, -1 = izquierda
+    this.estadoAnim = 'quieto';   // 'quieto' | 'correr' | 'saltar' | 'caer'
+    this.tiempoAnimMs = 0;
 
     let f = FISICA_PERSONAJE;
     this.cuerpo = Bodies.rectangle(x, y, f.ANCHO, f.ALTO, {
@@ -63,6 +70,8 @@ class Personaje {
     let direccion = 0;
     if (keyIsDown(this.teclaIzquierda)) direccion -= 1;
     if (keyIsDown(this.teclaDerecha))   direccion += 1;
+    this.direccion = direccion;
+    if (direccion !== 0) this.mirando = direccion;
 
     let velX = this.cuerpo.velocity.x;
     let velY = this.cuerpo.velocity.y;
@@ -92,6 +101,50 @@ class Personaje {
     }
 
     Body.setVelocity(this.cuerpo, { x: velX, y: velY });
+
+    this.actualizarAnimacion(dt);
+    this.emitirParticulas();
+  }
+
+  // Elige la animación según el movimiento; al cambiar de animación empieza desde el cuadro 0
+  actualizarAnimacion(dt) {
+    let nuevo;
+    if (!this.enSuelo) nuevo = (this.cuerpo.velocity.y < -0.5) ? 'saltar' : 'caer';
+    else nuevo = (this.direccion !== 0) ? 'correr' : 'quieto'; // Corre aunque empuje una caja
+
+    if (nuevo !== this.estadoAnim) {
+      this.estadoAnim = nuevo;
+      this.tiempoAnimMs = 0;
+    } else {
+      this.tiempoAnimMs += dt;
+    }
+  }
+
+  // Chispas que salen de la llama de Fireboy y gotas que caen de Watergirl
+  emitirParticulas() {
+    let x = this.cuerpo.position.x;
+    let pies = this.cuerpo.bounds.max.y;
+    let arrastreX = -this.cuerpo.velocity.x * 0.3; // Quedan atrás al moverse
+
+    if (this.tipoElemento === 'fuego') {
+      if (random() < 0.35) {
+        emitirParticula({
+          x: x + random(-9, 9), y: pies - 52 + random(-5, 5),
+          vx: arrastreX + random(-0.3, 0.3), vy: random(-1.6, -0.6),
+          gravedad: -0.02, vidaMs: random(350, 650),
+          tam: random(2.5, 4), tamFinal: 0,
+          color: [255, random(120, 210), 40]
+        });
+      }
+    } else if (random() < (this.direccion !== 0 ? 0.25 : 0.08)) {
+      emitirParticula({
+        x: x + random(-11, 11), y: pies - 38 + random(-8, 8),
+        vx: arrastreX + random(-0.3, 0.3), vy: random(-0.8, 0),
+        gravedad: 0.12, vidaMs: random(400, 650),
+        tam: random(2.5, 3.5), tamFinal: 1,
+        color: [130, 215, 255]
+      });
+    }
   }
 
   // Después de Engine.update: detecta el suelo y, al bajar rampas, lo mantiene pegado
@@ -131,12 +184,49 @@ class Personaje {
     return null;
   }
 
-  // opacidad: 0..255 (se desvanece al entrar por la puerta)
-  dibujar(opacidad = 255) {
-    fill(red(this.color), green(this.color), blue(this.color), opacidad);
-    dibujarCuerpo(this.cuerpo);
+  dibujar() {
+    if (this.muerto) return; // Se convirtió en humo
+
+    let el = this.tipoElemento;
+    let x = this.cuerpo.position.x;
+    let pies = this.cuerpo.bounds.max.y;
+    let voltear = this.mirando < 0; // Los sprites miran a la derecha
+
+    this.dibujarBrillo(x, pies);
+
+    // Cuerpo (de pie o piernas corriendo) con las caderas arriba; la cabeza va encima,
+    // tapando un poco el torso
+    let animCuerpo = (this.estadoAnim === 'correr') ? 'cuerpo_correr' : 'cuerpo_quieto';
+    let topeCuerpo = pies - altoSprite(el, animCuerpo);
+    dibujarSprite(el, animCuerpo, cuadroPorTiempo(SPRITES[el][animCuerpo], this.tiempoAnimMs),
+                  x, topeCuerpo, voltear);
+
+    let animCabeza = 'cabeza_' + this.estadoAnim;
+    dibujarSprite(el, animCabeza, cuadroPorTiempo(SPRITES[el][animCabeza], this.tiempoAnimMs),
+                  x, topeCuerpo + Personaje.SOLAPE_CUELLO, voltear);
+  }
+
+  // Animación de entrar por la puerta al ganar (no se repite: termina vacía)
+  dibujarGanando(ms) {
+    let el = this.tipoElemento;
+    dibujarSprite(el, 'ganar', cuadroPorTiempo(SPRITES[el].ganar, ms, false),
+                  this.cuerpo.position.x, this.cuerpo.bounds.max.y);
+  }
+
+  // Halo suave alrededor del personaje, como en el original
+  dibujarBrillo(x, pies) {
+    let [r, g, b] = this.colorBrillo;
+    push();
+    noStroke();
+    fill(r, g, b, 22);
+    ellipse(x, pies - 30, 60, 72);
+    fill(r, g, b, 28);
+    ellipse(x, pies - 30, 44, 56);
+    pop();
   }
 }
+
+Personaje.SOLAPE_CUELLO = 3; // Píxeles que la cabeza tapa del torso
 
 // Acerca `valor` a `objetivo` como máximo `paso` unidades
 function acercarA(valor, objetivo, paso) {
