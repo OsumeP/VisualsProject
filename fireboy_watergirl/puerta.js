@@ -61,7 +61,7 @@ class Puerta {
     let desplazamiento = this.alto * this.abertura;
     let visible = this.alto - desplazamiento;
     if (visible > 0.5) {
-      image(imgBosque, this.x, this.y, this.ancho, visible,
+      image(imgFondo, this.x, this.y, this.ancho, visible,
             this.x, this.y + desplazamiento, this.ancho, visible);
     }
     pop();

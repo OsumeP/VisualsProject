@@ -14,18 +14,20 @@ let tiempoVictoriaMs = 0;      // Tiempo desde que se ganó (anima la entrada po
 let tiempoMuerteMs = 0;        // Tiempo desde que murió un personaje (anima el humo)
 let resultado = null;          // Datos de la partida ganada: { tiempoMs, gemas, calificacion }
 
-let imgInicio, imgBosque, fuente_juego;
+let imgInicio, fuente_juego;
+let lienzo;                    // Canvas de p5 (se escala con CSS para llenar la ventana)
 
 function preload() {
   imgInicio = loadImage("Resources/images/startgame.png");
-  imgBosque = loadImage("Resources/images/backgame.png");
+  cargarFondosNiveles();
   fuente_juego = loadFont("Resources/fonts/space.ttf");
   cargarSprites();
 }
 
 function setup() {
   // Lienzo del tamaño exacto del mapa
-  createCanvas(CONFIG.ANCHO, CONFIG.ALTO, WEBGL);
+  lienzo = createCanvas(CONFIG.ANCHO, CONFIG.ALTO, WEBGL);
+  ajustarTamanoLienzo();
 
   // Compilar los shaders cargados en las variables de texto
   shaderLiquido = createShader(vsPiscina, fsPiscina);
@@ -37,7 +39,7 @@ function setup() {
   // Los eventos se registran una sola vez: sobreviven a los reinicios del nivel
   registrarEventosColision(engine);
 
-  construirNivel(NIVEL_1);
+  construirNivel(listaNiveles()[indiceNivel]);
 
   iniciarAudio();
 
@@ -145,6 +147,8 @@ function personajeMuere(personaje) {
 
 // Se gana cuando cada personaje lleva un momento frente a su puerta, los dos a la vez
 function comprobarVictoria(dt) {
+  if (estadoPantalla !== "juego") return; // Ya ganaron (o murieron): no registrar dos veces
+
   if (listaPuertas.length > 0 && listaPuertas.every(p => p.ocupada)) {
     tiempoEnPuertasMs += dt;
   } else {
@@ -159,6 +163,7 @@ function comprobarVictoria(dt) {
       calificacion: calificarPartida(tiempoPartidaMs, nivelActual.tiempoObjetivoS * 1000,
                                      gemas.recogidas, gemas.total)
     };
+    resultado.mejora = registrarResultado(nivelActual.id, resultado);
     tiempoVictoriaMs = 0;
     estadoPendiente = "victoria";
     reproducirMusica("victoria", false);
@@ -174,8 +179,9 @@ function calificarPartida(tiempoMs, objetivoMs, gemasRecogidas, totalGemas) {
   return ['C', 'B', 'A'][cumplidos];
 }
 
+// Empieza (o reinicia) el nivel indiceNivel desde cero
 function iniciarPartida() {
-  reiniciarNivel();
+  construirNivel(listaNiveles()[indiceNivel]);
   tiempoPartidaMs = 0;
   tiempoEnPuertasMs = 0;
   resultado = null;
@@ -200,6 +206,28 @@ function continuarJuego() {
 
 function juegoEnPausa() {
   return estadoPantalla === "pausa";
+}
+
+function haySiguienteNivel() {
+  return indiceNivel + 1 < listaNiveles().length;
+}
+
+// Elegir nivel en el menú de inicio (solo si hay más de uno)
+function cambiarNivelSeleccionado(paso) {
+  let n = listaNiveles().length;
+  indiceNivel = (indiceNivel + paso + n) % n;
+}
+
+// El canvas se dibuja siempre a 1019x769 y el CSS lo escala para llenar la ventana
+// sin deformarlo. p5 corrige mouseX/mouseY según ese escalado.
+function ajustarTamanoLienzo() {
+  let escala = min(windowWidth / CONFIG.ANCHO, windowHeight / CONFIG.ALTO);
+  lienzo.style("width", floor(CONFIG.ANCHO * escala) + "px");
+  lienzo.style("height", floor(CONFIG.ALTO * escala) + "px");
+}
+
+function windowResized() {
+  ajustarTamanoLienzo();
 }
 
 function irAlMenu() {
@@ -266,7 +294,13 @@ function keyPressed() {
   } else if (estadoPantalla === "gameover" || pantallaVictoriaVisible()) {
     if (key === 'r' || key === 'R') {
       iniciarPartida();
+    } else if ((key === 'n' || key === 'N') && pantallaVictoriaVisible() && haySiguienteNivel()) {
+      indiceNivel++;
+      iniciarPartida();
     }
+  } else if (estadoPantalla === "inicio" && listaNiveles().length > 1) {
+    if (keyCode === LEFT_ARROW) cambiarNivelSeleccionado(-1);
+    if (keyCode === RIGHT_ARROW) cambiarNivelSeleccionado(1);
   }
 }
 
@@ -299,11 +333,42 @@ function pantalla_inicio() {
   textSize(16);
   fill(255);
   text("¡Ayuda a estos dos heroes en su aventura! Evita los peligros.", 0, 245);
-  text("Controles: Fireboy [Flechas]  |  Watergirl [A, W, D]  |  P: pausa  |  M: sonido", 0, 285);
+  text("Fireboy [Flechas]  |  Watergirl [A, W, D o F, T, H]  |  P: pausa  |  M: sonido", 0, 285);
   textSize(18);
   fill(255, 200, 0);
   text("HAZ CLICK EN EL BOTON DE PLAY PARA EMPEZAR", 0, 325);
+
+  dibujarInfoNivelSeleccionado();
   pop();
+}
+
+// Nombre del nivel (con flechas si hay varios) y su récord, sobre el botón de Play
+function dibujarInfoNivelSeleccionado() {
+  let nivel = listaNiveles()[indiceNivel];
+  let varios = listaNiveles().length > 1;
+  textAlign(CENTER, CENTER);
+  textFont(fuente_juego);
+
+  fill(255);
+  textSize(18);
+  let titulo = "NIVEL " + (indiceNivel + 1) + ": " + nivel.nombre.toUpperCase();
+  text(varios ? "<  " + titulo + "  >" : titulo, 0, 30);
+
+  let record = recordDeNivel(nivel.id);
+  textSize(15);
+  fill(255, 215, 0);
+  if (record) {
+    text("MEJOR TIEMPO " + formatearTiempo(record.mejorTiempoMs) +
+         "   |   GEMAS " + record.maxGemas + "/" + record.totalGemas +
+         "   |   CALIFICACION " + record.mejorCalificacion, 0, 160);
+  } else {
+    text("AUN SIN COMPLETAR", 0, 160);
+  }
+  if (varios) {
+    fill(200);
+    textSize(13);
+    text("Flechas izquierda / derecha: elegir nivel", 0, 185);
+  }
 }
 
   // ==========================================
@@ -333,7 +398,7 @@ function dibujarJuego() {
   fill(255, 127, 39);
   for (let p of paredesYSuelos) dibujarCuerpo(p);
 
-  image(imgBosque, 0, 0);
+  image(imgFondo, 0, 0);
 
   for (let bot of listaBotones) bot.dibujar();
   for (let pal of listaPalancas) pal.dibujar();
@@ -424,7 +489,8 @@ function pantalla_victoria() {
   text("TIEMPO: " + formatearTiempo(resultado.tiempoMs), 0, -90);
   textSize(16);
   fill(220);
-  text("OBJETIVO: " + formatearTiempo(nivelActual.tiempoObjetivoS * 1000), 0, -62);
+  text("OBJETIVO: " + formatearTiempo(nivelActual.tiempoObjetivoS * 1000) +
+       "     MEJOR: " + formatearTiempo(resultado.mejora.record.mejorTiempoMs), 0, -62);
 
   fill(255);
   textSize(24);
@@ -437,14 +503,22 @@ function pantalla_victoria() {
   text("CALIFICACION", 0, 22);
   fill(...colores[resultado.calificacion]);
   textSize(72);
-  text(resultado.calificacion, 0, 77);
+  text(resultado.calificacion, 0, 68);
+
+  // Récord nuevo (no se anuncia en la primera victoria: no había nada que superar)
+  let m = resultado.mejora;
+  if (!m.primeraVez && (m.tiempo || m.gemas)) {
+    fill(255, 215, 0);
+    textSize(18);
+    text(m.tiempo ? "¡NUEVO RECORD DE TIEMPO!" : "¡NUEVO RECORD DE GEMAS!", 0, 124);
+  }
 
   fill(255);
   textSize(18);
-  text("PRESIONA R PARA JUGAR DE NUEVO", 0, 150);
+  text(haySiguienteNivel() ? "R: JUGAR DE NUEVO     N: SIGUIENTE NIVEL" : "PRESIONA R PARA JUGAR DE NUEVO", 0, 156);
   fill(200);
   textSize(16);
-  text("O haz click en cualquier lado para ir al menu", 0, 180);
+  text("O haz click en cualquier lado para ir al menu", 0, 184);
   pop();
 }
 

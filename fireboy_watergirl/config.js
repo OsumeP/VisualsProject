@@ -42,10 +42,10 @@ const FISICA_PERSONAJE = {
   DISTANCIA_AJUSTE: 8     // Al bajar rampas, se pega al suelo si está a esta distancia o menos
 };
 
-// Teclas de cada personaje según su elemento
+// Teclas de cada personaje según su elemento (cada acción admite varias teclas)
 const TECLAS = {
-  fuego: { izquierda: 37, derecha: 39, salto: 38 },  // Flechas
-  agua:  { izquierda: 65, derecha: 68, salto: 87 }   // A, D, W
+  fuego: { izquierda: [37],     derecha: [39],     salto: [38] },      // Flechas
+  agua:  { izquierda: [65, 70], derecha: [68, 72], salto: [87, 84] }   // A, D, W  o  F, H, T
 };
 
 // Categorías de colisión (bits). Dos cuerpos chocan solo si la máscara de cada uno
