@@ -14,6 +14,8 @@ const CONFIG = {
   MAX_DELTA_MS: 250,        // Evita un "salto" enorme al volver de otra pestaña
 
   TECLA_DEPURACION: 113,    // F2
+  TECLA_PAUSA: 80,          // P (Escape también pausa)
+  TECLA_SILENCIO: 77,       // M
 
   ESPERA_VICTORIA_MS: 500,   // Tiempo que ambos deben estar en su puerta para ganar
   ENTRADA_VICTORIA_MS: 900,  // Duración de la animación de entrar por la puerta

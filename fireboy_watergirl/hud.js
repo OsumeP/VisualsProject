@@ -14,8 +14,16 @@ function formatearTiempo(ms) {
   return nf(minutos, 2) + ":" + nf(segundos, 2);
 }
 
+// Altavoz dibujado en el fondo (esquina superior derecha): click = silenciar
+const ALTAVOZ = { x: 975, y: 21, radioClick: 16 };
+
+function clicEnAltavoz(x, y) {
+  return dist(x, y, ALTAVOZ.x, ALTAVOZ.y) <= ALTAVOZ.radioClick;
+}
+
 function dibujarHUD() {
   dibujarReloj(formatearTiempo(tiempoPartidaMs));
+  dibujarEstadoSonido();
   dibujarContadorGemas('fuego', 48);
   dibujarContadorGemas('agua', 140);
 }
@@ -54,5 +62,30 @@ function dibujarReloj(texto) {
 
   fill(255, 200, 40); // Dorado
   text(texto, RELOJ.x, RELOJ.y);
+  pop();
+}
+
+// Ondas junto al altavoz si hay sonido; una X roja si está silenciado.
+// Solo rellenos (en WEBGL las líneas quedan por delante de los menús).
+function dibujarEstadoSonido() {
+  push();
+  noStroke();
+  translate(ALTAVOZ.x + 12, ALTAVOZ.y);
+  if (audio.silenciado) {
+    fill(230, 40, 30);
+    rectMode(CENTER);
+    for (let angulo of [QUARTER_PI, -QUARTER_PI]) {
+      push();
+      rotate(angulo);
+      rect(0, 0, 14, 3.5, 1);
+      pop();
+    }
+  } else {
+    // Dos arcos hechos de puntos
+    fill(255, 200, 40);
+    for (let radio of [4, 8]) {
+      for (let a = -0.9; a <= 0.91; a += 0.3) ellipse(radio * cos(a), radio * sin(a), 2.4);
+    }
+  }
   pop();
 }

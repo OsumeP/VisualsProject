@@ -33,6 +33,7 @@ class Gema {
 
   recoger() {
     this.recogida = true;
+    reproducirSonido("gema");
     // Chispas que salen en todas direcciones
     for (let i = 0; i < 12; i++) {
       let angulo = TWO_PI * i / 12 + random(-0.2, 0.2);
