@@ -7,6 +7,9 @@
 
 const NIVEL_1 = {
 
+  // Con este tiempo o menos (y todas las gemas) se obtiene la calificación A
+  tiempoObjetivoS: 60,
+
   // Posición inicial (centro del cuerpo) de cada personaje
   aparicion: {
     fuego: { x: 100, y: 680 },
@@ -98,6 +101,12 @@ const NIVEL_1 = {
   // Palancas: activan su plataforma cuando están hacia la 'izquierda'
   palancas: [
     { x: 275, y: 520, estado: 'derecha', plataforma: 'izquierda' }
+  ],
+
+  // Puertas de salida: esquinas de la hoja de cada puerta en el fondo
+  puertas: [
+    { esquinas: [818, 93, 862, 153], tipo: 'fuego' },
+    { esquinas: [896, 93, 940, 153], tipo: 'agua' }
   ],
 
   // Botones: activan su plataforma mientras alguien los pisa

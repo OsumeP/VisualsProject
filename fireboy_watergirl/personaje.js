@@ -131,8 +131,9 @@ class Personaje {
     return null;
   }
 
-  dibujar() {
-    fill(this.color);
+  // opacidad: 0..255 (se desvanece al entrar por la puerta)
+  dibujar(opacidad = 255) {
+    fill(red(this.color), green(this.color), blue(this.color), opacidad);
     dibujarCuerpo(this.cuerpo);
   }
 }

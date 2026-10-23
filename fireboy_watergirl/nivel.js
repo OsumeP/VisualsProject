@@ -13,6 +13,7 @@ let piscinas = [];         // Lava, agua, ácido
 let listaPalancas = [];
 let listaPlataformas = [];
 let listaBotones = [];
+let listaPuertas = [];
 let listaSolidos = [];     // Cuerpos que sirven de suelo (para detectar dónde se apoyan los personajes)
 
 function construirNivel(datos) {
@@ -27,6 +28,7 @@ function construirNivel(datos) {
   listaPalancas = [];
   listaPlataformas = [];
   listaBotones = [];
+  listaPuertas = [];
 
   // --- Escenario estático ---
   for (let p of datos.paredes) agregarBloquePorEsquinas(...p);
@@ -63,6 +65,11 @@ function construirNivel(datos) {
     listaBotones.push(bot);
   }
 
+  // --- Puertas de salida ---
+  for (let d of datos.puertas) {
+    listaPuertas.push(new Puerta(...d.esquinas, d.tipo));
+  }
+
   // --- Personajes ---
   fireboy = new Personaje(datos.aparicion.fuego.x, datos.aparicion.fuego.y, 'fuego');
   watergirl = new Personaje(datos.aparicion.agua.x, datos.aparicion.agua.y, 'agua');
@@ -78,7 +85,7 @@ function reiniciarNivel() {
 
 // Lista de todas las entidades con lógica propia (las paredes no tienen)
 function todasLasEntidades() {
-  return [...personajes, ...piscinas, ...listaPalancas, ...listaPlataformas, ...listaBotones];
+  return [...personajes, ...piscinas, ...listaPalancas, ...listaPlataformas, ...listaBotones, ...listaPuertas];
 }
 
 function cuerposSolidos() {

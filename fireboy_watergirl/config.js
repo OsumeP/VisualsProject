@@ -13,7 +13,10 @@ const CONFIG = {
   MAX_PASOS_POR_FRAME: 5,   // Si el equipo se atrasa mucho, se descarta el tiempo sobrante
   MAX_DELTA_MS: 250,        // Evita un "salto" enorme al volver de otra pestaña
 
-  TECLA_DEPURACION: 113     // F2
+  TECLA_DEPURACION: 113,    // F2
+
+  ESPERA_VICTORIA_MS: 500,  // Tiempo que ambos deben estar en su puerta para ganar
+  ENTRADA_VICTORIA_MS: 700  // Duración de la animación de entrar por la puerta
 };
 
 // Movimiento de los personajes. Las velocidades están en píxeles por paso de física

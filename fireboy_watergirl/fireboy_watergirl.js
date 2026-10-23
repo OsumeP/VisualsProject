@@ -2,12 +2,16 @@
 const { Engine, World, Composite, Bodies, Body, Events } = Matter;
 let engine, world;
 
-let estadoPantalla = "inicio"; // "inicio", "juego" o "gameover"
+let estadoPantalla = "inicio"; // "inicio", "juego", "gameover" o "victoria"
 let estadoPendiente = null;    // Cambio de pantalla pedido durante un paso de física
 
 let tiempoJuego = 0;           // Segundos de juego simulados (anima los shaders)
 let tiempoPartidaMs = 0;       // Reloj de la partida: solo avanza mientras se juega
 let acumuladorFisica = 0;      // Milisegundos reales aún no simulados
+
+let tiempoEnPuertasMs = 0;     // Cuánto llevan ambos personajes en su puerta a la vez
+let tiempoVictoriaMs = 0;      // Tiempo desde que se ganó (anima la entrada por la puerta)
+let resultado = null;          // Datos de la partida ganada: { tiempoMs, calificacion }
 
 let imgInicio, imgBosque, fuente_juego;
 
@@ -49,6 +53,10 @@ function draw() {
   } else if (estadoPantalla === "gameover") {
     dibujarEscenaJuego(); // Última imagen de la partida, congelada de fondo
     pantalla_reinicio();
+  } else if (estadoPantalla === "victoria") {
+    tiempoVictoriaMs += deltaTime;
+    dibujarEscenaJuego();
+    if (tiempoVictoriaMs >= CONFIG.ENTRADA_VICTORIA_MS) pantalla_victoria();
   }
 }
 
@@ -68,7 +76,7 @@ function actualizarJuego() {
     acumuladorFisica -= CONFIG.PASO_FISICA_MS;
     pasos++;
 
-    if (estadoPantalla !== "juego") break; // Murió alguien: no seguir simulando
+    if (estadoPantalla !== "juego") break; // Murió alguien o ganaron: no seguir simulando
   }
 
   // Si el equipo va demasiado lento, descartamos el atraso en vez de acumularlo
@@ -84,9 +92,12 @@ function pasoDeJuego(dt) {
 
   for (let pal of listaPalancas) pal.actualizar();
   for (let plat of listaPlataformas) plat.actualizar();
+  for (let puerta of listaPuertas) puerta.actualizar();
 
   tiempoJuego += dt / 1000;
   tiempoPartidaMs += dt;
+
+  comprobarVictoria(dt);
 
   // Los cambios de pantalla se aplican fuera de los eventos de colisión
   if (estadoPendiente) {
@@ -100,9 +111,39 @@ function personajeMuere(personaje) {
   estadoPendiente = "gameover";
 }
 
+// Se gana cuando cada personaje lleva un momento frente a su puerta, los dos a la vez
+function comprobarVictoria(dt) {
+  if (listaPuertas.length > 0 && listaPuertas.every(p => p.ocupada)) {
+    tiempoEnPuertasMs += dt;
+  } else {
+    tiempoEnPuertasMs = 0;
+  }
+
+  if (tiempoEnPuertasMs >= CONFIG.ESPERA_VICTORIA_MS && !estadoPendiente) {
+    resultado = {
+      tiempoMs: tiempoPartidaMs,
+      calificacion: calificarPartida(tiempoPartidaMs, nivelActual.tiempoObjetivoS * 1000)
+    };
+    tiempoVictoriaMs = 0;
+    estadoPendiente = "victoria";
+  }
+}
+
+// Calificación al estilo del original: A si se cumple el tiempo objetivo y se
+// recogen todas las gemas, B si se cumple solo una de las dos, C si ninguna.
+// (Las gemas llegan en la Fase 4; mientras tanto ese criterio se da por cumplido.)
+function calificarPartida(tiempoMs, objetivoMs, gemasRecogidas = 0, totalGemas = 0) {
+  let cumplidos = 0;
+  if (tiempoMs <= objetivoMs) cumplidos++;
+  if (gemasRecogidas >= totalGemas) cumplidos++;
+  return ['C', 'B', 'A'][cumplidos];
+}
+
 function iniciarPartida() {
   reiniciarNivel();
   tiempoPartidaMs = 0;
+  tiempoEnPuertasMs = 0;
+  resultado = null;
   acumuladorFisica = 0;
   estadoPendiente = null;
   estadoPantalla = "juego";
@@ -123,10 +164,14 @@ function mousePressed() {
     if (dist(mX, mY, 0, 100) < 45) {
       iniciarPartida();
     }
-  } else if (estadoPantalla === "gameover") {
+  } else if (estadoPantalla === "gameover" || pantallaVictoriaVisible()) {
     // Click en cualquier lado: volver al menú principal
     estadoPantalla = "inicio";
   }
+}
+
+function pantallaVictoriaVisible() {
+  return estadoPantalla === "victoria" && tiempoVictoriaMs >= CONFIG.ENTRADA_VICTORIA_MS;
 }
 
 function keyPressed() {
@@ -137,7 +182,7 @@ function keyPressed() {
 
   if (estadoPantalla === "juego") {
     for (let p of personajes) p.revisarSalto(keyCode);
-  } else if (estadoPantalla === "gameover") {
+  } else if (estadoPantalla === "gameover" || pantallaVictoriaVisible()) {
     if (key === 'r' || key === 'R') {
       iniciarPartida();
     }
@@ -212,11 +257,18 @@ function dibujarJuego() {
   for (let bot of listaBotones) bot.dibujar();
   for (let pal of listaPalancas) pal.dibujar();
   for (let plat of listaPlataformas) plat.dibujar();
+  for (let puerta of listaPuertas) puerta.dibujar();
 
   // Shaders de Piscinas y Personajes
   for (let pisc of piscinas) pisc.dibujar();
   resetShader();
-  for (let p of personajes) p.dibujar();
+
+  // Al ganar, los personajes se desvanecen como si entraran por la puerta
+  let opacidad = 255;
+  if (estadoPantalla === "victoria") {
+    opacidad = 255 * (1 - constrain(tiempoVictoriaMs / CONFIG.ENTRADA_VICTORIA_MS, 0, 1));
+  }
+  for (let p of personajes) p.dibujar(opacidad);
 }
 
   // ==========================================
@@ -250,5 +302,54 @@ function pantalla_reinicio() {
   fill(200);
   textSize(18);
   text("O haz click en cualquier lado para ir al menu", 0, 80); // La fuente no tiene tildes
+  pop();
+}
+
+  // ==========================================
+  //  PANTALLA VICTORIA
+  // ==========================================
+
+function pantalla_victoria() {
+  push();
+  fill(0, 0, 0, 160);
+  rectMode(CENTER);
+  rect(0, 0, width, height);
+
+  // Cuadro de diálogo estilo madera (como el de game over)
+  fill(139, 69, 19, 240);
+  stroke(255, 200, 0);
+  strokeWeight(4);
+  rect(0, 0, 580, 380, 20);
+
+  noStroke();
+  textAlign(CENTER, CENTER);
+  textFont(fuente_juego);
+
+  fill(255, 215, 0);
+  textSize(38);
+  text("NIVEL COMPLETADO", 0, -130);
+
+  fill(255);
+  textSize(24);
+  text("TIEMPO: " + formatearTiempo(resultado.tiempoMs), 0, -60);
+  textSize(16);
+  fill(220);
+  text("OBJETIVO: " + formatearTiempo(nivelActual.tiempoObjetivoS * 1000), 0, -30);
+
+  // Calificación grande, con color según la nota
+  let colores = { A: [255, 215, 0], B: [200, 200, 210], C: [205, 127, 50] };
+  textSize(20);
+  fill(255);
+  text("CALIFICACION", 0, 15);
+  fill(...colores[resultado.calificacion]);
+  textSize(72);
+  text(resultado.calificacion, 0, 70);
+
+  fill(255);
+  textSize(18);
+  text("PRESIONA R PARA JUGAR DE NUEVO", 0, 140);
+  fill(200);
+  textSize(16);
+  text("O haz click en cualquier lado para ir al menu", 0, 168);
   pop();
 }
