@@ -6,6 +6,7 @@ let estadoPantalla = "inicio"; // "inicio", "juego" o "gameover"
 let estadoPendiente = null;    // Cambio de pantalla pedido durante un paso de física
 
 let tiempoJuego = 0;           // Segundos de juego simulados (anima los shaders)
+let tiempoPartidaMs = 0;       // Reloj de la partida: solo avanza mientras se juega
 let acumuladorFisica = 0;      // Milisegundos reales aún no simulados
 
 let imgInicio, imgBosque, fuente_juego;
@@ -85,6 +86,7 @@ function pasoDeJuego(dt) {
   for (let plat of listaPlataformas) plat.actualizar();
 
   tiempoJuego += dt / 1000;
+  tiempoPartidaMs += dt;
 
   // Los cambios de pantalla se aplican fuera de los eventos de colisión
   if (estadoPendiente) {
@@ -100,6 +102,7 @@ function personajeMuere(personaje) {
 
 function iniciarPartida() {
   reiniciarNivel();
+  tiempoPartidaMs = 0;
   acumuladorFisica = 0;
   estadoPendiente = null;
   estadoPantalla = "juego";
@@ -185,6 +188,7 @@ function dibujarEscenaJuego() {
   push();
   translate(-width / 2, -height / 2);
   dibujarJuego();
+  dibujarHUD();
   if (modoDepuracion) dibujarDepuracion();
   pop();
 }
