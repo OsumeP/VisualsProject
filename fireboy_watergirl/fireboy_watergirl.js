@@ -244,6 +244,11 @@ function irAlMenu() {
 function mousePressed() {
   desbloquearAudio();
 
+  if (estadoPantalla === "juego" && clicEnBotonAmarillo(mouseX, mouseY)) {
+    pausarJuego(); // Llama a la misma función que la tecla P o ESC
+    return; // Interrumpe para que no evalúe otros clics falsos
+  }
+
   // Ajustamos el cursor al centro debido al canvas WEBGL
   let mX = mouseX - width / 2;
   let mY = mouseY - height / 2;
@@ -376,6 +381,12 @@ function dibujarInfoNivelSeleccionado() {
   // ==========================================
 
 function dibujarEscenaJuego() {
+ // Evaluamos si el mouse está sobre el botón amarillo o sobre el altavoz
+  if (clicEnBotonAmarillo(mouseX, mouseY) || clicEnAltavoz(mouseX, mouseY)) {
+    cursor(HAND); // Cambia el cursor a la mano de selección
+  } else {
+    cursor(ARROW); // Vuelve al cursor normal si se sale
+  }  
   push();
   translate(-width / 2, -height / 2);
   dibujarJuego();

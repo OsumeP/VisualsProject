@@ -21,11 +21,19 @@ function clicEnAltavoz(x, y) {
   return dist(x, y, ALTAVOZ.x, ALTAVOZ.y) <= ALTAVOZ.radioClick;
 }
 
+// semicirculo amarillo abajo mitad pantalla: click = llama pantalla de escape
+const BOTONAMARILLO = { x: 504, y: 759, radioClick: 16 };
+
+function clicEnBotonAmarillo(x, y) {
+  return dist(x, y, BOTONAMARILLO.x, BOTONAMARILLO.y) <= BOTONAMARILLO.radioClick;
+}
+
 function dibujarHUD() {
   dibujarReloj(formatearTiempo(tiempoPartidaMs));
   dibujarEstadoSonido();
   dibujarContadorGemas('fuego', 48);
   dibujarContadorGemas('agua', 140);
+  dibujarBotonAmarillo();
 }
 
 // Icono de gema + "recogidas/total", sobre el techo de piedra (esquina superior izquierda)
@@ -88,4 +96,35 @@ function dibujarEstadoSonido() {
     }
   }
   pop();
+}
+
+// Circulo para el boton amarillo de abajo
+function dibujarBotonAmarillo() {
+  if (clicEnBotonAmarillo(mouseX, mouseY)) {
+    push();
+    noStroke();
+    
+    // Calculamos el pulso del brillo basado en el tiempo de juego
+    // Multiplicamos por 4 para que la animación sea fluida y rítmica
+    let t = tiempoJuego * 4;
+    let brillo = 0.5 + 0.1 * sin(t); // Oscila suavemente entre 0.0 y 1.0
+
+    // 1. Amplía y reduce las dimensiones:
+    // El tamaño base horizontal es 58 y el vertical 42. El pulso le suma hasta 8px y 6px respectivamente.
+    let ancho = 50 + 8 * brillo;
+    let alto = 50 + 6 * brillo;
+
+    // 2. Modifica la opacidad de fondo:
+    // La opacidad mínima base será 80 (cuando reduce) y la máxima 160 (cuando amplía)
+    let opacidad = 80 + 80 * brillo;
+    
+    fill(0, 255, 50, opacidad); 
+    
+    // Nos posicionamos manteniendo el ajuste de altura (-4) para que calce en el fondo
+    translate(BOTONAMARILLO.x, BOTONAMARILLO.y);
+    
+    // Dibujamos el arco con el tamaño dinámico que oscila en el tiempo
+    arc(0, 0, ancho, alto, PI, TWO_PI); 
+    pop();
+  }
 }
