@@ -22,22 +22,22 @@ const NIVEL_1 = {
   // Bloques estáticos por esquinas: [xIni, yIni, xFin, yFin]
   paredes: [
     [0, 0, 1010, 30],       // R1: Techo superior
-    [0, 30, 30, 730],       // R2: Pared izquierda
+    [0, 30, 30, 725],       // R2: Pared izquierda
     [980, 30, 1010, 760],   // R3: Pared derecha
 
     [0, 725, 472, 760],     // R4: Suelo inferior izquierdo
     [472, 736, 597, 760],   // R5: Fondo piscina de lava
     [597, 725, 680, 760],   // R6: Isla separadora inferior
-    [680, 736, 805, 760],   // R7: Fondo piscina de agua
+    [680, 736, 800, 760],   // R7: Fondo piscina de agua
     [800, 725, 980, 760],   // R8: Suelo inferior derecho
-    [905, 680, 980, 730],   // R9: Escalón inferior derecho
-    [932, 647, 980, 685],   // R9: Escalón inferior derecho arriba
+    [905, 680, 980, 725],   // R9: Escalón inferior derecho
+    [932, 647, 980, 680],   // R9: Escalón inferior derecho arriba
     [30, 621, 340, 651],    // R10: Plataforma segundo piso watergirl
 
-    [30, 182, 160, 290],    // R11: Bloque superior cuarto nivel
+    [30, 182, 160, 285],    // R11: Bloque superior cuarto nivel
     [30, 284, 882, 315],    // R12: Plataforma cuarto nivel
     [750, 314, 882, 340],   // Cuarto nivel
-    [490, 235, 673, 287],   // Cuarto nivel
+    [490, 235, 673, 285],   // Cuarto nivel
 
     [30, 518, 440, 548],    // R14: Plataforma baja izquierda 2 nivel
     [440, 570, 630, 600],   // R14: Plataforma baja izquierda
@@ -46,7 +46,7 @@ const NIVEL_1 = {
 
     [128, 390, 520, 417],   // R13: Plataforma flotante central tercer nivel arriba
     [495, 415, 980, 445],   // Tercer nivel abajo
-    [934, 445, 980, 524],   // Tercer nivel derecha
+    [934, 445, 980, 520],   // Tercer nivel derecha
     [850, 445, 934, 470],   // Tercer nivel derecha
 
     [285, 158, 980, 190],   // Quinto nivel (piso de las puertas)
@@ -60,9 +60,9 @@ const NIVEL_1 = {
 
   // Rampas triangulares por sus tres vértices: [x1, y1, x2, y2, x3, y3]
   rampas: [
-    [650, 624, 650, 600, 680, 592],
+    [650, 624, 650, 600, 675, 600],
     [619, 624, 619, 600, 596, 600],
-    [905, 680, 932, 685, 932, 647],  // Derecha abajo
+    [905, 680, 932, 680, 932, 647],  // Derecha abajo
 
     [440, 548, 392, 548, 440, 600],  // Segundo nivel
     [440, 518, 440, 570, 495, 570],  // Segundo nivel
@@ -70,12 +70,12 @@ const NIVEL_1 = {
     [520, 390, 520, 415, 550, 415],  // Tercer nivel arriba
 
     [495, 417, 495, 445, 465, 417],  // Tercer nivel abajo
-    [850, 470, 934, 470, 934, 524],  // Tercer nivel abajo
+    [880, 470, 934, 470, 934, 524],  // Tercer nivel abajo
     [850, 470, 850, 445, 830, 445],  // Tercer nivel abajo
 
     [855, 570, 855, 600, 885, 600],
 
-    [673, 290, 673, 235, 730, 290],
+    [673, 285, 673, 235, 730, 285],
     [725, 315, 750, 315, 750, 340],
     [260, 105, 260, 135, 232, 135],
     [320, 135, 320, 105, 345, 135],
