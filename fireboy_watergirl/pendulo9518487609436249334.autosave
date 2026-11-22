@@ -1,0 +1,212 @@
+  // ==========================================
+  //  Clase Péndulo (tronco colgante)
+  // ==========================================
+// Tronco colgado de una cadena. Está quieto hasta que un personaje interactúa con él:
+//
+//   * Balanceo (ángulo θ de la cadena): se integra la ecuación del péndulo
+//         θ'' = -(g / L)·(sin θ + μ·Σd / L) - c·θ'
+//     con la gravedad de Matter.js. El término μ·Σd/L es el peso de los personajes
+//     parados a una distancia d del centro: el conjunto busca quedar bajo el ancla, así que
+//     pararse a un lado desplaza el tronco hacia el otro. c lo va frenando hasta quedar quieto.
+//     Al caer encima, y al caminar sobre él (acelerar empuja el tronco hacia atrás), los
+//     personajes le transmiten parte de su velocidad: así se puede "bombear" el columpio.
+//
+//   * Inclinación (ángulo φ de la tabla, sobre su propio centro): un resorte amortiguado la
+//     lleva hacia el ángulo que le corresponde al peso que tiene encima. Un personaje parado a
+//     la izquierda la inclina en sentido antihorario; a la derecha, en sentido horario; dos
+//     personajes en lados opuestos se equilibran.
+//
+// El tronco es un cuerpo estático que movemos por código (como las plataformas móviles),
+// no un cuerpo dinámico unido con un Constraint: así no lo desestabilizan los choques,
+// se reinicia igual siempre y sabemos cuánto se movió para arrastrar a quien va encima.
+
+class Pendulo {
+  // datos: { ancla: [x, y], largo, ancho, alto, anguloInicial }
+  //   ancla:          centro de la bola de la que cuelga la cadena
+  //   largo:          largo de la cadena, desde el ancla hasta el borde superior del tronco
+  //   ancho, alto:    tamaño del tronco
+  //   anguloInicial:  opcional, en grados (positivo = hacia la derecha). Por defecto, quieto.
+  constructor(datos) {
+    this.ancla = { x: datos.ancla[0], y: datos.ancla[1] };
+    this.largo = datos.largo;
+    this.ancho = datos.ancho;
+    this.alto = datos.alto;
+
+    this.angulo = radians(datos.anguloInicial || 0);  // θ: 0 = colgando recto hacia abajo
+    this.velocidadAngular = 0;                        // θ', en rad/s
+    this.inclinacion = 0;                             // φ: giro de la tabla (positivo = horario)
+    this.velocidadInclinacion = 0;                    // φ', en rad/s
+
+    this.velAnterior = new Map(); // Velocidad X de cada personaje encima en el paso anterior
+
+    let pos = this.posicionTronco();
+    this.cuerpo = Bodies.rectangle(pos.x, pos.y, this.ancho, this.alto, {
+      label: 'pendulo',
+      isStatic: true,
+      collisionFilter: FILTRO.ESCENARIO
+    });
+    this.cuerpo.entidad = this;
+    World.add(world, this.cuerpo);
+  }
+
+  // Gravedad del mundo de Matter.js en píxeles/s² (gravity.scale está en px/ms²)
+  gravedad() {
+    return engine.gravity.y * engine.gravity.scale * 1e6;
+  }
+
+  // Centro del tronco: cuelga de la cadena por el centro de su borde superior
+  posicionTronco() {
+    return {
+      x: this.ancla.x + this.largo * sin(this.angulo),
+      y: this.ancla.y + this.largo * cos(this.angulo) + this.alto / 2
+    };
+  }
+
+  // Distancia de un personaje al centro de la tabla, medida a lo largo de la tabla
+  // (negativa = a la izquierda)
+  distanciaAlCentro(p) {
+    let c = this.cuerpo.position;
+    return (p.cuerpo.position.x - c.x) * cos(this.inclinacion) +
+           (p.cuerpo.position.y - c.y) * sin(this.inclinacion);
+  }
+
+  // Se llama en cada paso de física, después de Engine.update (dt en ms)
+  actualizar(dt) {
+    let s = dt / 1000;
+    let L = this.largo;
+    let g = this.gravedad();
+    let mitad = this.ancho / 2;
+
+    // --- Personajes encima: empujes y reparto del peso ---
+    let encima = personajes.filter(p => p.soporte === this.cuerpo);
+    let sumaDistancias = 0;
+    let velAhora = new Map();
+    for (let p of encima) {
+      let vel = p.cuerpo.velocity.x / s; // px/s
+      if (this.velAnterior.has(p)) {
+        // Al caminar, el impulso que el personaje gana con los pies lo pierde el tronco
+        this.velocidadAngular -= Pendulo.EMPUJE_CAMINAR * (vel - this.velAnterior.get(p)) / L;
+      } else {
+        // Acaba de caer encima: arrastra al tronco con parte de su velocidad
+        let velTronco = L * this.velocidadAngular * cos(this.angulo);
+        this.velocidadAngular += Pendulo.EMPUJE_ATERRIZAJE * (vel - velTronco) / L;
+      }
+      velAhora.set(p, vel);
+      sumaDistancias += constrain(this.distanciaAlCentro(p), -mitad, mitad);
+    }
+    this.velAnterior = velAhora;
+
+    // --- Balanceo: péndulo con el peso de los personajes y rozamiento ---
+    let aceleracion = -(g / L) * (sin(this.angulo) + Pendulo.RELACION_MASA * sumaDistancias / L)
+                      - Pendulo.AMORTIGUACION * this.velocidadAngular;
+    this.velocidadAngular += aceleracion * s;  // Euler semi-implícito
+    this.angulo += this.velocidadAngular * s;
+    this.angulo = constrain(this.angulo, -Pendulo.ANGULO_MAX, Pendulo.ANGULO_MAX);
+    if (abs(this.angulo) === Pendulo.ANGULO_MAX) this.velocidadAngular = 0;
+
+    // --- Inclinación de la tabla: resorte amortiguado hacia el ángulo que marca el peso ---
+    let objetivo = constrain(sumaDistancias / mitad, -1, 1) * Pendulo.INCLINACION_MAX;
+    let w = Pendulo.FRECUENCIA_INCLINACION;
+    let acelInclinacion = -w * w * (this.inclinacion - objetivo)
+                          - 2 * Pendulo.AMORTIGUACION_INCLINACION * w * this.velocidadInclinacion;
+    this.velocidadInclinacion += acelInclinacion * s;
+    this.inclinacion += this.velocidadInclinacion * s;
+
+    // --- Mover el cuerpo y llevar consigo a quien va encima ---
+    let centroAntes = { x: this.cuerpo.position.x, y: this.cuerpo.position.y };
+    let inclinacionAntes = this.cuerpo.angle;
+    let centroAhora = this.posicionTronco();
+    Body.setPosition(this.cuerpo, centroAhora);
+    Body.setAngle(this.cuerpo, this.inclinacion);
+
+    // Cada personaje sigue al punto de la tabla que tiene bajo los pies
+    for (let p of encima) {
+      let pie = { x: p.cuerpo.position.x, y: p.cuerpo.bounds.max.y };
+      let local = rotarPunto(pie.x - centroAntes.x, pie.y - centroAntes.y, -inclinacionAntes);
+      let nuevo = rotarPunto(local.x, local.y, this.inclinacion);
+      p.arrastrar(centroAhora.x + nuevo.x - pie.x, centroAhora.y + nuevo.y - pie.y);
+    }
+  }
+
+  dibujar() {
+    let pos = this.cuerpo.position;
+    let a = this.cuerpo.angle;
+
+    // La cadena llega al centro del borde superior de la tabla (que gira con ella)
+    let enganche = rotarPunto(0, -this.alto / 2, a);
+    this.dibujarCadena(pos.x + enganche.x, pos.y + enganche.y);
+
+    push();
+    translate(pos.x, pos.y);
+    rotate(a);
+    if (Pendulo.imagen) {
+      // El recorte del tronco es un poco más grande que su cuerpo (contorno y hojas)
+      let img = Pendulo.imagen;
+      let w = this.ancho + 2;
+      let h = img.height * w / img.width;
+      image(img, -w / 2, -this.alto / 2 - Pendulo.DESFASE_IMAGEN, w, h);
+    } else {
+      noStroke();
+      fill(110, 60, 20);
+      rectMode(CENTER);
+      rect(0, 0, this.ancho, this.alto, 3);
+    }
+    pop();
+  }
+
+  // Eslabones a lo largo de la cadena, alternando de frente y de canto (solo rellenos:
+  // en WEBGL las líneas con stroke() quedan por delante de todo)
+  dibujarCadena(xFin, yFin) {
+    let dx = xFin - this.ancla.x;
+    let dy = yFin - this.ancla.y;
+    let largo = Math.hypot(dx, dy);
+
+    push();
+    noStroke();
+    rectMode(CENTER);
+    translate(this.ancla.x, this.ancla.y);
+    rotate(-atan2(dx, dy)); // El eje +Y local queda a lo largo de la cadena
+    let paso = Pendulo.PASO_ESLABON;
+    let i = 0;
+    for (let d = Pendulo.RADIO_BOLA + paso / 2; d < largo; d += paso, i++) {
+      if (i % 2 === 0) {
+        fill(35);  rect(0, d, 8, paso + 2, 2);
+        fill(190); rect(0, d, 6, paso, 2);
+        fill(70);  rect(0, d, 2, paso - 4, 1);
+      } else {
+        fill(35);  rect(0, d, 4, paso + 2, 1);
+        fill(160); rect(0, d, 2, paso, 1);
+      }
+    }
+    pop();
+  }
+}
+
+Pendulo.imagen = null;                    // Se carga en preload (Resources/images/tronco.png)
+Pendulo.DESFASE_IMAGEN = 3;               // La imagen empieza 3 px sobre el tronco (trae un trozo de cadena)
+
+// Balanceo
+Pendulo.EMPUJE_ATERRIZAJE = 0.3;          // Fracción de la velocidad del personaje que recibe al caer encima
+Pendulo.EMPUJE_CAMINAR = 0.25;            // Fracción del cambio de velocidad al caminar que lo empuja hacia atrás
+Pendulo.RELACION_MASA = 0.3;              // Peso de un personaje comparado con el del tronco
+Pendulo.AMORTIGUACION = 0.5;              // Rozamiento del balanceo (1/s): más alto = se detiene antes
+Pendulo.ANGULO_MAX = Math.PI / 3;         // Nunca pasa de 60°
+
+// Inclinación de la tabla
+Pendulo.INCLINACION_MAX = Math.PI / 12;   // 15° con un personaje parado en el borde
+Pendulo.FRECUENCIA_INCLINACION = 7;       // rad/s: qué tan rápido se inclina
+Pendulo.AMORTIGUACION_INCLINACION = 0.45; // < 1: se pasa un poco y oscila antes de asentarse
+
+// Dibujo de la cadena
+Pendulo.RADIO_BOLA = 9;                   // La cadena sale del borde de la bola del ancla
+Pendulo.PASO_ESLABON = 7;
+
+function cargarImagenesPendulo() {
+  Pendulo.imagen = loadImage('Resources/images/tronco.png');
+}
+
+// Gira el vector (x, y) un ángulo dado (positivo = horario en pantalla, como rotate() de p5)
+function rotarPunto(x, y, angulo) {
+  let c = cos(angulo), s = sin(angulo);
+  return { x: x * c - y * s, y: x * s + y * c };
+}

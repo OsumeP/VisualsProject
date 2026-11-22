@@ -118,6 +118,7 @@ function pasoDeJuego(dt) {
 
   for (let pal of listaPalancas) pal.actualizar();
   for (let plat of listaPlataformas) plat.actualizar();
+  for (let pen of listaPendulos) pen.actualizar(dt);
   for (let puerta of listaPuertas) puerta.actualizar();
   for (let gema of listaGemas) gema.actualizar(dt);
 
@@ -414,6 +415,7 @@ function dibujarJuego() {
   for (let bot of listaBotones) bot.dibujar();
   for (let pal of listaPalancas) pal.dibujar();
   for (let plat of listaPlataformas) plat.dibujar();
+  for (let pen of listaPendulos) pen.dibujar();
   for (let puerta of listaPuertas) puerta.dibujar();
   for (let gema of listaGemas) gema.dibujar();
   for (let caja of listaCajas) caja.dibujar();

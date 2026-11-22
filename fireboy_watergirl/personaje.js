@@ -23,6 +23,7 @@ class Personaje {
     this.saltoEstePaso = false;
     this.direccion = 0;           // Entrada horizontal de este paso: -1, 0 o 1
     this.muerto = false;
+    this.velocidadPrevia = { x: 0, y: 0 };
 
     // Estado de la animación
     this.mirando = 1;             // 1 = derecha, -1 = izquierda
@@ -95,13 +96,15 @@ class Personaje {
     }
 
     // Quieto en el suelo: anulamos la gravedad para que no resbale en las rampas
-    if (this.enSuelo && direccion === 0) {
+    // (salvo que el suelo sea una tabla demasiado inclinada: ahí sí resbala)
+    if (this.enSuelo && direccion === 0 && !this.sueloResbaladizo()) {
       velY = 0;
       let g = engine.gravity;
       this.cuerpo.force.y -= this.cuerpo.mass * g.y * g.scale;
     }
 
     Body.setVelocity(this.cuerpo, { x: velX, y: velY });
+    this.velocidadPrevia = { x: velX, y: velY }; // Con la que choca en este paso (ej: al caer sobre un péndulo)
 
     this.actualizarAnimacion(dt);
     this.emitirParticulas();
@@ -167,6 +170,31 @@ class Personaje {
       this.enSuelo = false;
       this.soporte = null;
     }
+  }
+
+  // El cuerpo bajo los pies puede declararse resbaladizo (ej: un péndulo muy inclinado)
+  sueloResbaladizo() {
+    let e = this.soporte && this.soporte.entidad;
+    return !!(e && e.esResbaladizo && e.esResbaladizo());
+  }
+
+  // Lo mueve junto con el cuerpo móvil sobre el que está parado (plataforma, péndulo).
+  // De lado solo si no lo mete en una pared: así una plataforma que se esconde en la
+  // pared no se lo lleva adentro, sino que se le escapa por debajo y lo deja caer.
+  arrastrar(dx, dy) {
+    if (dx !== 0 && this.chocariaDeLado(dx)) dx = 0;
+    Body.translate(this.cuerpo, { x: dx, y: dy });
+  }
+
+  chocariaDeLado(dx) {
+    let b = this.cuerpo.bounds;
+    let margen = 4; // Sin los bordes de arriba y abajo, para no contar el suelo ni el techo
+    let zona = {
+      min: { x: b.min.x + dx, y: b.min.y + margen },
+      max: { x: b.max.x + dx, y: b.max.y - margen }
+    };
+    let otros = cuerposSolidos().filter(c => c !== this.soporte);
+    return Matter.Query.region(otros, zona).length > 0;
   }
 
   // Busca un cuerpo sólido justo bajo los pies (3 puntos: izquierda, centro, derecha).

@@ -13,12 +13,13 @@ let imgFondo;            // Fondo del nivel actual
 // (ver NIVEL_1), su imagen de fondo, y añadirlo aquí. Es una función (y no una
 // constante) para no depender del orden en que se cargan los archivos.
 function listaNiveles() {
-  return [NIVEL_2];
+  return [NIVEL_1, NIVEL_2];
 }
 
 // Se llama desde preload()
 function cargarFondosNiveles() {
   for (let n of listaNiveles()) imagenesFondo[n.id] = loadImage(n.fondo);
+  cargarImagenesPendulo();
 }
 
 let fireboy, watergirl;
@@ -31,8 +32,8 @@ let listaBotones = [];
 let listaPuertas = [];
 let listaGemas = [];
 let listaCajas = [];
+let listaPendulos = [];    // Troncos colgantes que se balancean
 let listaSolidos = [];     // Cuerpos que sirven de suelo (para detectar dónde se apoyan los personajes)
-let listaPendulos = [];
 
 function construirNivel(datos) {
   nivelActual = datos;
@@ -70,7 +71,12 @@ function construirNivel(datos) {
   // --- Plataformas, y lo que las activa (enlazado por id) ---
   let plataformasPorId = {};
   for (let d of datos.plataformas) {
-    let plat = new PlataformaMovil(...d.esquinas, d.velocidad, d.recorrido);
+    let plat = new PlataformaMovil(...d.esquinas, {
+      velocidad: d.velocidad,
+      // 'recorrido' (bajar N píxeles) es la forma corta de desplazamiento: [0, N]
+      desplazamiento: d.desplazamiento || [0, d.recorrido],
+      tapa: d.tapa
+    });
     plataformasPorId[d.id] = plat;
     listaPlataformas.push(plat);
   }
@@ -82,10 +88,13 @@ function construirNivel(datos) {
   }
 
   for (let d of datos.botones) {
-    let bot = new Boton(...d.esquinas);
+    let bot = new Boton(...d.esquinas, d.arte);
     buscarPorId(plataformasPorId, d.plataforma, 'plataforma').agregarActivador(bot);
     listaBotones.push(bot);
   }
+
+  // --- Péndulos (opcionales en los datos) ---
+  for (let d of (datos.pendulos || [])) listaPendulos.push(new Pendulo(d));
 
   // --- Puertas de salida ---
   for (let d of datos.puertas) {
@@ -105,12 +114,18 @@ function construirNivel(datos) {
   watergirl = new Personaje(datos.aparicion.agua.x, datos.aparicion.agua.y, 'agua');
   personajes = [fireboy, watergirl];
 
-  listaSolidos = [...paredesYSuelos, ...listaPlataformas.map(plat => plat.cuerpo), ...listaCajas.map(c => c.cuerpo)];
+  listaSolidos = [
+    ...paredesYSuelos,
+    ...listaPlataformas.map(plat => plat.cuerpo),
+    ...listaPendulos.map(pen => pen.cuerpo),
+    ...listaCajas.map(c => c.cuerpo)
+  ];
 }
 
 // Lista de todas las entidades con lógica propia (las paredes no tienen)
 function todasLasEntidades() {
-  return [...personajes, ...piscinas, ...listaPalancas, ...listaPlataformas, ...listaBotones, ...listaPuertas, ...listaGemas, ...listaCajas];
+  return [...personajes, ...piscinas, ...listaPalancas, ...listaPlataformas, ...listaPendulos,
+          ...listaBotones, ...listaPuertas, ...listaGemas, ...listaCajas];
 }
 
 // Conteo de gemas; tipo opcional ('fuego' | 'agua') para contar solo las de un color

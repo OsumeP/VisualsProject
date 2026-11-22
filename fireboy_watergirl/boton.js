@@ -3,7 +3,10 @@
   // ==========================================
 
 class Boton {
-  constructor(xIni, yIni, xFin, yFin) {
+  // Esquinas del sensor. arte (opcional): [xIni, yIni, xFin, yFin] de la tapa del botón
+  // cuando el fondo ya lo trae dibujado; al pisarlo, esa tapa se dibuja hundida.
+  constructor(xIni, yIni, xFin, yFin, arte) {
+    this.arte = arte || null;
     this.ancho = xFin - xIni;
     this.alto = yFin - yIni;
     this.centroX = xIni + (this.ancho / 2);
@@ -38,6 +41,10 @@ class Boton {
   }
 
   dibujar() {
+    if (this.arte) {
+      this.dibujarSobreElFondo();
+      return;
+    }
     push();
     if (this.estaPisado) {
       fill(0, 150, 255); // Azul más brillante al presionarse
@@ -47,4 +54,17 @@ class Boton {
     dibujarCuerpo(this.cuerpo);
     pop();
   }
+
+  // El fondo ya muestra el botón suelto; pisado, su tapa se aplasta hacia abajo
+  dibujarSobreElFondo() {
+    if (!this.estaPisado) return;
+    let [x1, y1, x2, y2] = this.arte;
+    let w = x2 - x1, h = y2 - y1, hundido = Boton.HUNDIDO;
+    // Lo que queda libre arriba se tapa con la pared de al lado (los ladrillos se repiten cada 40 px)
+    image(imgFondo, x1, y1, w, hundido, x1 + Boton.PERIODO_PARED, y1, w, hundido);
+    image(imgFondo, x1, y1 + hundido, w, h - hundido, x1, y1, w, h);
+  }
 }
+
+Boton.HUNDIDO = 4;          // Píxeles que baja la tapa al pisarlo
+Boton.PERIODO_PARED = 40;   // Periodo horizontal de los ladrillos del fondo

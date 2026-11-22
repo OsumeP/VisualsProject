@@ -2,7 +2,9 @@
   //  DATOS DEL NIVEL 2 (Forest Temple)
   // ==========================================
 // Solo datos: la construcción la hace construirNivel() en nivel.js.
-// Las coordenadas son píxeles del fondo backgame.png (1019x769, origen arriba a la izquierda).
+// Las coordenadas son píxeles del fondo backgame_level2.png (1013x761, origen arriba a la izquierda).
+// Ese fondo lo genera herramientas/preparar_nivel2.py a partir de la captura original
+// backgame_level2_ref.png, quitando lo que ahora se mueve (troncos, compuerta, puente).
 // Las conexiones entre elementos se hacen por id (ej: un botón indica qué plataforma mueve).
 
 const NIVEL_2 = {
@@ -91,10 +93,23 @@ const NIVEL_2 = {
     { esquinas: [163, 723, 384, 736], tipo: 'lava', talud: 15 }
   ],
 
-  // Plataformas móviles. recorrido = cuántos píxeles bajan al activarse
+  // Plataformas móviles. desplazamiento = [dx, dy] desde el reposo hasta la posición activada.
+  // tapa = zona del fondo que se redibuja encima: la parte de la barra metida en la pared no se ve.
   plataformas: [
-    { id: 'vertical', esquinas: [495, 442, 513, 540],  velocidad: 2.0, recorrido: 80 },
-    { id: 'derecha',   esquinas: [560, 133,655 ,151 ], velocidad: 2.0, recorrido: 80 }
+    // Compuerta del cuarto piso: sube y se esconde en el techo
+    { id: 'compuerta', esquinas: [495, 440, 516, 539], velocidad: 2.0, desplazamiento: [0, -52],
+      tapa: [489, 386, 522, 440] },
+    // Puente del piso de las puertas: sale de la pared derecha y cubre el hueco
+    { id: 'puente', esquinas: [561, 128, 691, 152], velocidad: 2.0, desplazamiento: [-118, 0],
+      tapa: [569, 120, 700, 160] }
+  ],
+
+  // Troncos colgantes sobre las piscinas de ácido (ver pendulo.js). Están quietos hasta que
+  // un personaje los mueve: se balancean al caer o caminar encima y se inclinan con su peso.
+  // ancla = centro de la bola del fondo; largo = cadena hasta el borde superior del tronco.
+  pendulos: [
+    { ancla: [324, 192], largo: 144, ancho: 100, alto: 21 },
+    { ancla: [686, 192], largo: 144, ancho: 100, alto: 21 }
   ],
 
   // Palancas: activan su plataforma cuando están hacia la 'izquierda'
@@ -107,27 +122,27 @@ const NIVEL_2 = {
   ],
     
   // Gemas: [x, y] del centro. Rojas solo para Fireboy, azules solo para Watergirl.
-  // Van unos 22 px sobre el suelo para recogerlas al pasar caminando.
+  // Posiciones medidas en la captura del juego original (Resources/images/nivel2.png).
   gemas: {
     fuego: [
-      [624, 623],   // 
-      [700, 623],   // 
-      [209, 698],   // 
-      [312, 698],   // 
-      [386, 489],   // 
-      [725, 489],   // 
-      [468, 334],   // 
-      [466, 77],   // 
+      [632, 631],   // Sobre la piscina de lava del quinto piso
+      [709, 631],
+      [219, 708],   // Sobre la piscina de lava del suelo
+      [322, 708],
+      [400, 502],   // Cuarto piso
+      [735, 502],
+      [477, 347],   // Sobre el bloque central, entre los troncos
+      [477, 89]     // Sobre el hueco del piso de las puertas
     ],
     agua: [
-      [213, 623],   // 
-      [309, 623],   // 
-      [624, 698],   // 
-      [698, 698],   // 
-      [261, 489],   // 
-      [593, 489],   // 
-      [515, 334],   // 
-      [516, 77],   // 
+      [224, 630],   // Sobre la piscina de agua del quinto piso
+      [328, 630],
+      [637, 708],   // Sobre la piscina de agua del suelo
+      [715, 708],
+      [276, 502],   // Cuarto piso
+      [611, 502],
+      [534, 347],   // Sobre el bloque central, entre los troncos
+      [534, 89]     // Sobre el hueco del piso de las puertas
     ]
   },
 
@@ -137,16 +152,12 @@ const NIVEL_2 = {
     { esquinas: [128, 60, 172, 120], tipo: 'agua' }
   ],
 
-  // Botones: activan su plataforma mientras alguien los pisa
+  // Botones: activan su plataforma mientras alguien los pisa.
+  // arte = tapa del botón dibujado en el fondo, que se hunde al pisarlo.
   botones: [
-    { esquinas: [241, 122, 281, 132], plataforma: 'derecha' },  // Botón tercer nivel
-    { esquinas: [732, 122, 772, 132], plataforma: 'derecha' },   // Botón cuarto nivel
-    { esquinas: [185, 537, 225, 547], plataforma: 'vertical' },  // Botón tercer nivel
-    { esquinas: [783, 537, 823, 547], plataforma: 'vertical' }   // Botón cuarto nivel
-
+    { esquinas: [240, 120, 278, 131], plataforma: 'puente',    arte: [247, 110, 271, 120] },  // Piso de las puertas, izquierda
+    { esquinas: [730, 120, 768, 131], plataforma: 'puente',    arte: [737, 110, 761, 120] },  // Piso de las puertas, derecha
+    { esquinas: [188, 530, 226, 541], plataforma: 'compuerta', arte: [195, 522, 219, 532] },  // Cuarto piso, izquierda
+    { esquinas: [782, 530, 820, 541], plataforma: 'compuerta', arte: [789, 522, 813, 532] }   // Cuarto piso, derecha
   ]
-  //pendulos: [
-  //  [320, 200, 150, 110, 20],
-  //  [680, 200, 150, 110, 20]
- // ]
 };
