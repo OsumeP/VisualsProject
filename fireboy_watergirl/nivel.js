@@ -13,7 +13,7 @@ let imgFondo;            // Fondo del nivel actual
 // (ver NIVEL_1), su imagen de fondo, y añadirlo aquí. Es una función (y no una
 // constante) para no depender del orden en que se cargan los archivos.
 function listaNiveles() {
-  return [NIVEL_1];
+  return [NIVEL_2];
 }
 
 // Se llama desde preload()
@@ -32,6 +32,7 @@ let listaPuertas = [];
 let listaGemas = [];
 let listaCajas = [];
 let listaSolidos = [];     // Cuerpos que sirven de suelo (para detectar dónde se apoyan los personajes)
+let listaPendulos = [];
 
 function construirNivel(datos) {
   nivelActual = datos;
@@ -49,6 +50,7 @@ function construirNivel(datos) {
   listaPuertas = [];
   listaGemas = [];
   listaCajas = [];
+  listaPendulos = [];
 
   // --- Escenario estático ---
   for (let p of datos.paredes) agregarBloquePorEsquinas(...p);
