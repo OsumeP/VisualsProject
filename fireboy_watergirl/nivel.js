@@ -13,7 +13,8 @@ let imgFondo;            // Fondo del nivel actual
 // (ver NIVEL_1), su imagen de fondo, y añadirlo aquí. Es una función (y no una
 // constante) para no depender del orden en que se cargan los archivos.
 function listaNiveles() {
-  return [NIVEL_1, NIVEL_2];
+  return [NIVEL_1, NIVEL_2,NIVEL_3];
+  //return [NIVEL_3];
 }
 
 // Se llama desde preload()
